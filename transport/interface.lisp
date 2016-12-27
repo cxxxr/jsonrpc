@@ -5,13 +5,15 @@
            #:transport-app
            #:transport-clients
            #:start-server
+           #:start-client
            #:handle-request
            #:send-message-using-transport
-           #:send-message))
+           #:receive-message-using-transport
+           #:send-message
+           #:receive-message))
 (in-package #:jsonrpc/transport/interface)
 
 (defvar *transport*)
-(defvar *socket*)
 
 (defclass transport ()
   ((clients :initform nil
@@ -22,13 +24,21 @@
 
 (defgeneric start-server (transport))
 
+(defgeneric start-client (transport))
+
 (defgeneric handle-request (transport socket)
   (:method :around (transport socket)
-    (let ((*transport* transport)
-          (*socket* socket))
+    (let ((*transport* transport))
       (call-next-method))))
 
-(defgeneric send-message-using-transport (transport socket message))
+(defgeneric send-message-using-transport (transport message))
 
-(defun send-message (message)
-  (send-message-using-transport *transport* *socket* message))
+(defgeneric receive-message-using-transport (transport &optional socket))
+
+(defun send-message (message &optional (transport *transport*))
+  (assert transport)
+  (send-message-using-transport transport message))
+
+(defun receive-message (&optional (transport *transport*))
+  (assert transport)
+  (receive-message-using-transport transport))

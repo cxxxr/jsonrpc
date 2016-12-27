@@ -4,9 +4,8 @@
   (:use #:jsonrpc/request-response
         #:jsonrpc/transports
         #:jsonrpc/server
+        #:jsonrpc/client
         #:jsonrpc/errors)
-  (:shadowing-import-from #:jsonrpc/server
-                          #:server-listen)
   (:export
    ;; from request-response
    #:request
@@ -26,9 +25,13 @@
    #:transport
    #:tcp-transport
    #:send-message
+   #:receive-message
 
    ;; from server
    #:server-listen
+
+   ;; from client
+   #:client-connect
 
    ;; from errors
    #:jsonrpc-error
