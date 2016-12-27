@@ -1,13 +1,15 @@
 (in-package #:cl-user)
 (defpackage #:jsonrpc/server
-  (:use #:cl)
-  (:import-from #:jsonrpc/handlers
-                #:tcp-handler
-                #:start-handler
-                #:handler-clients)
+  (:use #:cl
+        #:jsonrpc/utils)
+  (:import-from #:jsonrpc/transports
+                #:tcp-transport
+                #+nil #:start-server
+                #:transport-clients)
   (:export #:start-server))
 (in-package #:jsonrpc/server)
 
 (defun start-server (app)
-  (let ((handler (make-instance 'tcp-handler :app app)))
-    (start-handler handler)))
+  (let* ((port (random-port))
+         (transport (make-instance 'tcp-transport :app app :port port)))
+    (jsonrpc/transports:start-server transport)))

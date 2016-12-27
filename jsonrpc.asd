@@ -8,13 +8,13 @@
                #:alexandria
                #:uiop)
   :components
-  ((:file "main" :depends-on ("server" "request-response" "errors"))
-   (:file "server" :depends-on ("handlers"))
+  ((:file "main" :depends-on ("server" "transports" "request-response" "errors"))
+   (:file "server" :depends-on ("transports" "utils"))
    (:file "request-response" :depends-on ("errors"))
-   (:file "handlers" :depends-on ("handler"))
-   (:module "handler"
+   (:file "transports" :depends-on ("transport"))
+   (:module "transport"
     :serial t
-    :depends-on ("request-response" "utils")
+    :depends-on ("request-response")
     :components
     ((:file "interface")
      (:file "tcp")))

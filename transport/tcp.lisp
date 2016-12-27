@@ -1,8 +1,7 @@
 (in-package #:cl-user)
-(defpackage #:jsonrpc/handler/tcp
+(defpackage #:jsonrpc/transport/tcp
   (:use #:cl
-        #:jsonrpc/utils
-        #:jsonrpc/handler/interface)
+        #:jsonrpc/transport/interface)
   (:import-from #:jsonrpc/request-response
                 #:parse-request)
   (:import-from #:usocket)
@@ -13,46 +12,44 @@
                 #:fast-write-byte)
   (:import-from #:trivial-utf-8
                 #:utf-8-bytes-to-string)
-  (:export #:tcp-handler
-           #:tcp-handler-port))
-(in-package #:jsonrpc/handler/tcp)
+  (:export #:tcp-transport))
+(in-package #:jsonrpc/transport/tcp)
 
 (define-condition eof (error) ())
 
-(defclass tcp-handler (handler)
+(defclass tcp-transport (transport)
   ((socket :initform nil
-           :accessor tcp-handler-socket)
-   (port :initform nil
-         :accessor tcp-handler-port)))
+           :accessor tcp-transport-socket)
+   (port :accessor tcp-transport-port
+         :initarg :port
+         :initform ":port is required")))
 
-(defmethod start-handler ((handler tcp-handler))
-  (let ((port (random-port)))
-    (setf (tcp-handler-port handler) port)
-    (usocket:with-socket-listener (server "127.0.0.1" port :reuse-address t :element-type '(unsigned-byte 8))
-      (setf (tcp-handler-socket handler) server)
-      (unwind-protect
-           (loop
-             (setf (handler-clients handler)
-                   (remove-if-not #'open-stream-p
-                                  (handler-clients handler)
-                                  :key #'usocket:socket-stream))
-             (usocket:wait-for-input (cons server
-                                           (handler-clients handler))
-                                     :timeout 10)
-             (when (member (usocket::state server) '(:read :read-write))
-               (let ((client (usocket:socket-accept server)))
-                 (push client (handler-clients handler))))
-             (dolist (socket (handler-clients handler))
-               (when (member (usocket::state socket) '(:read :read-write))
-                 (handler-case
-                     (handle-request handler socket)
-                   (eof ()
-                     (usocket:socket-close socket)
-                     (setf (handler-clients handler)
-                           (remove socket (handler-clients handler))))))))
-        (mapc #'usocket:socket-close (handler-clients handler))))))
+(defmethod start-server ((transport tcp-transport))
+  (usocket:with-socket-listener (server "127.0.0.1" (tcp-transport-port transport) :reuse-address t :element-type '(unsigned-byte 8))
+    (setf (tcp-transport-socket transport) server)
+    (unwind-protect
+         (loop
+           (setf (transport-clients transport)
+                 (remove-if-not #'open-stream-p
+                                (transport-clients transport)
+                                :key #'usocket:socket-stream))
+           (usocket:wait-for-input (cons server
+                                         (transport-clients transport))
+                                   :timeout 10)
+           (when (member (usocket::state server) '(:read :read-write))
+             (let ((client (usocket:socket-accept server)))
+               (push client (transport-clients transport))))
+           (dolist (socket (transport-clients transport))
+             (when (member (usocket::state socket) '(:read :read-write))
+               (handler-case
+                   (handle-request transport socket)
+                 (eof ()
+                   (usocket:socket-close socket)
+                   (setf (transport-clients transport)
+                         (remove socket (transport-clients transport))))))))
+      (mapc #'usocket:socket-close (transport-clients transport)))))
 
-(defmethod handle-request ((handler tcp-handler) socket)
+(defmethod handle-request ((transport tcp-transport) socket)
   (let* ((stream (usocket:socket-stream socket))
          (headers (read-headers stream))
          (length (ignore-errors (parse-integer (gethash "content-length" headers)))))
@@ -60,10 +57,10 @@
       (let ((body (make-array length :element-type '(unsigned-byte 8))))
         (read-sequence body stream)
         ;; TODO: error handling
-        (funcall (handler-app handler)
+        (funcall (transport-app transport)
                  (parse-request (utf-8-bytes-to-string body)))))))
 
-(defmethod send-message-using-handler ((handler tcp-handler) socket message)
+(defmethod send-message-using-transport ((transport tcp-transport) socket message)
   (let ((json (yason:with-output-to-string* ()
                 (yason:encode-object message))))
     (format (usocket:socket-stream socket)

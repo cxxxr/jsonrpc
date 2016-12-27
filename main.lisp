@@ -2,9 +2,11 @@
 (defpackage #:jsonrpc
   (:nicknames #:jsonrpc/main)
   (:use #:jsonrpc/request-response
-        #:jsonrpc/handlers
+        #:jsonrpc/transports
         #:jsonrpc/server
         #:jsonrpc/errors)
+  (:shadowing-import-from #:jsonrpc/server
+                          #:start-server)
   (:export
    ;; from request-response
    #:request
@@ -20,10 +22,9 @@
    #:parse-request
    #:parse-response
 
-   ;; from handlers
-   #:handler
-   #:tcp-handler
-   #:tcp-handler-port
+   ;; from transports
+   #:transport
+   #:tcp-transport
    #:send-message
 
    ;; from server
