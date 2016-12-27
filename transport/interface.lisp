@@ -3,7 +3,7 @@
   (:use #:cl)
   (:export #:transport
            #:transport-app
-           #:transport-handle
+           #:transport-connection
            #:start-server
            #:start-client
            #:handle-request
@@ -14,43 +14,42 @@
 (in-package #:jsonrpc/transport/interface)
 
 (defvar *transport*)
-(defvar *handle*)
+(defvar *connection*)
 
 (defclass transport ()
   ((app :type function
         :initarg :app
         :accessor transport-app)
-   (handle :initarg :handle
-           :accessor transport-handle)))
+   (connection :accessor transport-connection)))
 
 (defgeneric start-server (transport))
 
 (defgeneric start-client (transport))
 
-(defgeneric handle-request (transport handle)
-  (:method :around (transport handle)
+(defgeneric handle-request (transport connection)
+  (:method :around (transport connection)
     (let ((*transport* transport)
-          (*handle* handle))
+          (*connection* connection))
       (call-next-method))))
 
-(defgeneric send-message-using-transport (to handle message))
+(defgeneric send-message-using-transport (to connection message))
 
-(defgeneric receive-message-using-transport (from handle))
+(defgeneric receive-message-using-transport (from connection))
 
 (defun send-message (message &optional to)
   (typecase to
     (transport
-     (send-message-using-transport to (transport-handle to) message))
+     (send-message-using-transport to (transport-connection to) message))
     (null
-     (send-message-using-transport *transport* *handle* message))
+     (send-message-using-transport *transport* *connection* message))
     (otherwise
      (send-message-using-transport *transport* to message))))
 
 (defun receive-message (&optional from)
   (typecase from
     (transport
-     (receive-message-using-transport from (transport-handle from)))
+     (receive-message-using-transport from (transport-connection from)))
     (null
-     (receive-message-using-transport *transport* *handle*))
+     (receive-message-using-transport *transport* *connection*))
     (otherwise
      (receive-message-using-transport *transport* from))))

@@ -32,7 +32,7 @@
                                         (tcp-transport-port transport)
                                         :reuse-address t
                                         :element-type '(unsigned-byte 8))
-    (setf (transport-handle transport) server)
+    (setf (transport-connection transport) server)
     (let ((clients '()))
       (unwind-protect
            (loop
@@ -53,15 +53,15 @@
         (mapc #'usocket:socket-close clients)))))
 
 (defmethod start-client ((transport tcp-transport))
-  (setf (transport-handle transport)
+  (setf (transport-connection transport)
         (usocket:socket-connect (tcp-transport-host transport)
                                 (tcp-transport-port transport)
                                 :element-type '(unsigned-byte 8)))
   transport)
 
-(defmethod handle-request ((transport tcp-transport) handle)
+(defmethod handle-request ((transport tcp-transport) connection)
   (funcall (transport-app transport)
-           (receive-message-using-transport transport handle)))
+           (receive-message-using-transport transport connection)))
 
 (defmethod send-message-using-transport ((transport tcp-transport) socket message)
   (let ((json (yason:with-output-to-string* ()
