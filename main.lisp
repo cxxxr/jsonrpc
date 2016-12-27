@@ -21,8 +21,7 @@
    #:response-error
    #:response-result
    #:response-id
-   #:parse-request
-   #:parse-response
+   #:parse-message
 
    ;; from transports
    #:transport

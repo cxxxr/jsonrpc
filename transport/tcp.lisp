@@ -4,7 +4,7 @@
         #:jsonrpc/utils
         #:jsonrpc/transport/interface)
   (:import-from #:jsonrpc/request-response
-                #:parse-request)
+                #:parse-message)
   (:import-from #:usocket)
   (:import-from #:yason)
   (:import-from #:fast-io
@@ -86,7 +86,7 @@
       (let ((body (make-array length :element-type '(unsigned-byte 8))))
         (read-sequence body stream)
         ;; TODO: error handling
-        (parse-request (utf-8-bytes-to-string body))))))
+        (parse-message (utf-8-bytes-to-string body))))))
 
 (defun read-headers (stream)
   (let (header-field

@@ -20,8 +20,7 @@
            #:response-error
            #:response-result
            #:response-id
-           #:parse-request
-           #:parse-response))
+           #:parse-message))
 (in-package #:jsonrpc/request-response)
 
 (defstruct request
@@ -34,58 +33,51 @@
   result
   id)
 
-(defun parse-request (input)
-  (labels ((validate (request)
-             (unless (and (equal (gethash "jsonrpc" request) "2.0")
-                          (stringp (gethash "method" request))
-                          (typep (gethash "params" request)
-                                 '(or hash-table array null))
-                          (typep (gethash "id" request)
-                                 '(or string number null))
-                          (every (lambda (key)
-                                   (find key '("jsonrpc" "method" "params" "id") :test #'string=))
-                                 (hash-table-keys request)))
-               (error 'jsonrpc-invalid-request)))
-           (make-req (request)
-             (validate request)
-             (make-request :method (gethash "method" request)
-                           :params (gethash "params" request)
-                           :id (gethash "id" request))))
-    (let ((request (handler-case (yason:parse input)
-                     (error () (error 'jsonrpc-parse-error)))))
-      (etypecase request
-        (array
-         (loop for req across request
-               collect (make-req req)))
-        (hash-table
-         (make-req request))))))
+(defun valid-request-p (request)
+  (and (equal (gethash "jsonrpc" request) "2.0")
+       (stringp (gethash "method" request))
+       (typep (gethash "params" request)
+              '(or hash-table array null))
+       (typep (gethash "id" request)
+              '(or string number null))
+       (every (lambda (key)
+                (find key '("jsonrpc" "method" "params" "id") :test #'string=))
+              (hash-table-keys request))))
 
-(defun parse-response (input)
-  (labels ((validate (response)
-             (unless (and (equal (gethash "jsonrpc" response) "2.0")
-                          (typep (gethash "error" response)
-                                 '(or null hash-table))
-                          (typep (gethash "id" response)
-                                 '(or string number null))
-                          (xor (nth-value 1 (gethash "error" response))
-                               (nth-value 1 (gethash "result" response)))
-                          (every (lambda (key)
-                                   (find key '("jsonrpc" "result" "error" "id") :test #'string=))
-                                 (hash-table-keys response)))
-               (error 'jsonrpc-invalid-response)))
-           (make-res (response)
-             (validate response)
-             (make-response :result (gethash "result" response)
-                            :error (gethash "error" response)
-                            :id (gethash "id" response))))
-    (let ((response (handler-case (yason:parse input)
-                      (error () (error 'jsonrpc-parse-error)))))
-      (etypecase response
+(defun valid-response-p (response)
+  (and (equal (gethash "jsonrpc" response) "2.0")
+       (typep (gethash "error" response)
+              '(or null hash-table))
+       (typep (gethash "id" response)
+              '(or string number null))
+       (xor (nth-value 1 (gethash "error" response))
+            (nth-value 1 (gethash "result" response)))
+       (every (lambda (key)
+                (find key '("jsonrpc" "result" "error" "id") :test #'string=))
+              (hash-table-keys response))))
+
+(defun parse-message (input)
+  (let ((message (handler-case (yason:parse input)
+                   (error () (error 'jsonrpc-parse-error)))))
+    (flet ((make-message (hash)
+             (if (gethash "method" hash)
+                 (progn
+                   (unless (valid-request-p hash)
+                     (error 'jsonrpc-invalid-request))
+                   (make-request :method (gethash "method" hash)
+                                 :params (gethash "params" hash)
+                                 :id (gethash "id" hash)))
+                 (progn
+                   (unless (valid-response-p hash)
+                     (error 'jsonrpc-invalid-response))
+                   (make-response :result (gethash "result" hash)
+                                  :error (gethash "error" hash)
+                                  :id (gethash "id" hash))))))
+      (etypecase message
         (array
-         (loop for res across response
-               collect (make-res res)))
+         (map 'list #'make-message message))
         (hash-table
-         (make-res response))))))
+         (make-message message))))))
 
 (defmethod yason:encode-object ((request request))
   (yason:with-object ()
