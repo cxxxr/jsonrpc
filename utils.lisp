@@ -5,7 +5,8 @@
                 #:socket-listen
                 #:socket-close
                 #:address-in-use-error)
-  (:export #:random-port))
+  (:export #:random-port
+           #:make-id))
 (in-package #:jsonrpc/utils)
 
 (defun port-available-p (port)
@@ -18,3 +19,14 @@
   (loop for port from (+ 50000 (random 1000)) upto 60000
         if (port-available-p port)
           return port))
+
+(defun make-id (&optional (length 12))
+  (declare (type fixnum length))
+  (let ((result (make-string length)))
+    (declare (type simple-string result))
+    (dotimes (i length result)
+      (setf (aref result i)
+            (ecase (random 5)
+              ((0 1) (code-char (+ #.(char-code #\a) (random 26))))
+              ((2 3) (code-char (+ #.(char-code #\A) (random 26))))
+              ((4) (code-char (+ #.(char-code #\0) (random 10)))))))))

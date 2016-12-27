@@ -1,11 +1,14 @@
 (in-package #:cl-user)
 (defpackage #:jsonrpc
   (:nicknames #:jsonrpc/main)
-  (:use #:jsonrpc/request-response
+  (:use #:cl
+        #:jsonrpc/request-response
         #:jsonrpc/transports
         #:jsonrpc/server
         #:jsonrpc/client
         #:jsonrpc/errors)
+  (:import-from #:jsonrpc/utils
+                #:make-id)
   (:export
    ;; from request-response
    #:request
@@ -43,4 +46,22 @@
    #:internal-error
    #:server-error
    #:jsonrpc-error-code
-   #:jsonrpc-error-message))
+   #:jsonrpc-error-message
+
+   ;; from this package
+   #:call))
+(in-package #:jsonrpc)
+
+(defun call (transport method &rest params)
+  (let ((id (make-id)))
+    (send-message
+     (make-request :id id
+                   :method method
+                   :params params)
+     transport)
+    (let ((response (receive-message transport)))
+      (when (response-error response)
+        (error "JSON-RPC response error: ~A" (response-error response)))
+      (unless (equal (response-id response) id)
+        (error "Unmatched response id"))
+      (response-result response))))

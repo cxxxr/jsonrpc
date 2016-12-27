@@ -21,8 +21,7 @@ JSON-RPC 2.0 server/client for Common Lisp.
 ```common-lisp
 ;; client
 (let ((transport (jsonrpc:client-connect :host "127.0.0.1" :port 50879)))
-  (send-message (jsonrpc:make-request :id "xxx" :method "textDocument/didChange") transport)
-  (receive-message transport))
+  (jsonrpc:call transport "textDocument/didChange"))
 ```
 
 ```
