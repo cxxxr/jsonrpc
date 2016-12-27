@@ -60,13 +60,20 @@
   transport)
 
 (defmethod handle-request ((transport tcp-transport) connection)
-  (funcall (transport-app transport)
-           (receive-message-using-transport transport connection)))
+  (let* ((message (receive-message-using-transport transport connection))
+         (response
+           (if (listp message)
+               ;; batch
+               (remove-if #'null
+                          (mapcar (transport-app transport) message))
+               (funcall (transport-app transport) message))))
+    (when response
+      (send-message-using-transport transport connection response))))
 
-(defmethod send-message-using-transport ((transport tcp-transport) socket message)
+(defmethod send-message-using-transport ((transport tcp-transport) connection message)
   (let ((json (yason:with-output-to-string* ()
                 (yason:encode-object message)))
-        (stream (usocket:socket-stream socket)))
+        (stream (usocket:socket-stream connection)))
     (write-sequence
      (string-to-utf-8-bytes
       (format nil
@@ -78,8 +85,8 @@
      stream)
     (force-output stream)))
 
-(defmethod receive-message-using-transport ((transport tcp-transport) socket)
-  (let* ((stream (usocket:socket-stream socket))
+(defmethod receive-message-using-transport ((transport tcp-transport) connection)
+  (let* ((stream (usocket:socket-stream connection))
          (headers (read-headers stream))
          (length (ignore-errors (parse-integer (gethash "content-length" headers)))))
     (when length

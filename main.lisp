@@ -9,6 +9,9 @@
         #:jsonrpc/errors)
   (:import-from #:jsonrpc/utils
                 #:make-id)
+  (:import-from #:jsonrpc/server/mapper
+                #:make-mapper
+                #:register-method)
   (:export
    ;; from request-response
    #:request
@@ -32,18 +35,22 @@
    ;; from server
    #:server-listen
 
+   ;; from server/mapper
+   #:make-mapper
+   #:register-method
+
    ;; from client
    #:client-connect
 
    ;; from errors
    #:jsonrpc-error
    #:jsonrpc-parse-error
-   #:invalid-request
-   #:invalid-response
-   #:method-not-found
-   #:invalid-params
-   #:internal-error
-   #:server-error
+   #:jsonrpc-invalid-request
+   #:jsonrpc-invalid-response
+   #:jsonrpc-method-not-found
+   #:jsonrpc-invalid-params
+   #:jsonrpc-internal-error
+   #:jsonrpc-server-error
    #:jsonrpc-error-code
    #:jsonrpc-error-message
 

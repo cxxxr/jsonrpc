@@ -4,11 +4,11 @@
   (:export #:jsonrpc-error
            #:jsonrpc-parse-error
            #:jsonrpc-invalid-request
-           #:invalid-response
-           #:method-not-found
-           #:invalid-params
-           #:internal-error
-           #:server-error
+           #:jsonrpc-invalid-response
+           #:jsonrpc-method-not-found
+           #:jsonrpc-invalid-params
+           #:jsonrpc-internal-error
+           #:jsonrpc-server-error
            #:jsonrpc-error-code
            #:jsonrpc-error-message))
 (in-package #:jsonrpc/errors)

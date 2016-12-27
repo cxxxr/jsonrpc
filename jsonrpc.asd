@@ -8,8 +8,9 @@
                #:alexandria
                #:uiop)
   :components
-  ((:file "main" :depends-on ("server" "client" "transports" "request-response" "errors" "utils"))
-   (:file "server" :depends-on ("transports"))
+  ((:file "main" :depends-on ("server" "client" "transports" "request-response" "server/mapper" "errors" "utils"))
+   (:file "server" :depends-on ("transports" "server/mapper"))
+   (:file "server/mapper" :depends-on ("request-response" "errors"))
    (:file "client" :depends-on ("transports"))
    (:file "request-response" :depends-on ("errors"))
    (:file "transports" :depends-on ("transport"))
