@@ -5,6 +5,7 @@ This library provides JSON-RPC server implementation for Common Lisp.
 ## Usage
 
 ```common-lisp
+;; server
 (jsonrpc:start-server
   (lambda (request)
     (cond
@@ -14,6 +15,17 @@ This library provides JSON-RPC server implementation for Common Lisp.
                                               :result xxx)))
          (jsonrpc:send-message response)))
       ...)))
+```
+
+```
+# client
+$ telnet 127.0.0.1 50371
+Trying 127.0.0.1...
+Connected to localhost.
+Escape character is '^]'.
+Content-Length: 74
+
+{ "jsonrpc": "2.0","id": 1,"method": "textDocument/didOpen","params": [] }
 ```
 
 ## Author
