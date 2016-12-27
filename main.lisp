@@ -55,7 +55,8 @@
    #:jsonrpc-error-message
 
    ;; from this package
-   #:call))
+   #:call
+   #:notify))
 (in-package #:jsonrpc)
 
 (defun call (transport method &rest params)
@@ -71,3 +72,9 @@
       (unless (equal (response-id response) id)
         (error "Unmatched response id"))
       (response-result response))))
+
+(defun notify (transport method &rest params)
+  (send-message
+   (make-request :method method
+                 :params params)
+   transport))
