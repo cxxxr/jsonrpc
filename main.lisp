@@ -6,7 +6,7 @@
         #:jsonrpc/server
         #:jsonrpc/errors)
   (:shadowing-import-from #:jsonrpc/server
-                          #:start-server)
+                          #:server-listen)
   (:export
    ;; from request-response
    #:request
@@ -28,7 +28,7 @@
    #:send-message
 
    ;; from server
-   #:start-server
+   #:server-listen
 
    ;; from errors
    #:jsonrpc-error

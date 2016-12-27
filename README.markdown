@@ -6,7 +6,7 @@ This library provides JSON-RPC server implementation for Common Lisp.
 
 ```common-lisp
 ;; server
-(jsonrpc:start-server
+(jsonrpc:server-listen
   (lambda (request)
     (cond
       ((= (jsonrpc:request-method request) "textDocument/didChange")

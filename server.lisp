@@ -4,12 +4,12 @@
         #:jsonrpc/utils)
   (:import-from #:jsonrpc/transports
                 #:tcp-transport
-                #+nil #:start-server
+                #:start-server
                 #:transport-clients)
   (:export #:start-server))
 (in-package #:jsonrpc/server)
 
-(defun start-server (app)
+(defun server-listen (app)
   (let* ((port (random-port))
          (transport (make-instance 'tcp-transport :app app :port port)))
-    (jsonrpc/transports:start-server transport)))
+    (start-server transport)))
