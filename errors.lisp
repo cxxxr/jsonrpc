@@ -3,7 +3,7 @@
   (:use #:cl)
   (:export #:jsonrpc-error
            #:jsonrpc-parse-error
-           #:invalid-request
+           #:jsonrpc-invalid-request
            #:invalid-response
            #:method-not-found
            #:invalid-params

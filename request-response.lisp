@@ -37,7 +37,7 @@
   (and (equal (gethash "jsonrpc" request) "2.0")
        (stringp (gethash "method" request))
        (typep (gethash "params" request)
-              '(or hash-table array null))
+              '(or hash-table list))
        (typep (gethash "id" request)
               '(or string number null))
        (every (lambda (key)

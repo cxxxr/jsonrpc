@@ -12,16 +12,15 @@
                 #:finish-output-buffer
                 #:fast-write-byte)
   (:import-from #:trivial-utf-8
-                #:utf-8-bytes-to-string)
+                #:utf-8-bytes-to-string
+                #:string-to-utf-8-bytes)
   (:export #:tcp-transport))
 (in-package #:jsonrpc/transport/tcp)
 
 (define-condition eof (error) ())
 
 (defclass tcp-transport (transport)
-  ((socket :initform nil
-           :accessor tcp-transport-socket)
-   (host :accessor tcp-transport-host
+  ((host :accessor tcp-transport-host
          :initarg :host
          :initform "127.0.0.1")
    (port :accessor tcp-transport-port
@@ -33,52 +32,53 @@
                                         (tcp-transport-port transport)
                                         :reuse-address t
                                         :element-type '(unsigned-byte 8))
-    (setf (tcp-transport-socket transport) server)
-    (unwind-protect
-         (loop
-           (setf (transport-clients transport)
-                 (remove-if-not #'open-stream-p
-                                (transport-clients transport)
-                                :key #'usocket:socket-stream))
-           (usocket:wait-for-input (cons server
-                                         (transport-clients transport))
-                                   :timeout 10)
-           (when (member (usocket:socket-state server) '(:read :read-write))
-             (let ((client (usocket:socket-accept server)))
-               (push client (transport-clients transport))))
-           (dolist (socket (transport-clients transport))
-             (when (member (usocket:socket-state socket) '(:read :read-write))
-               (handle-request transport socket))))
-      (mapc #'usocket:socket-close (transport-clients transport)))))
+    (setf (transport-handle transport) server)
+    (let ((clients '()))
+      (unwind-protect
+           (loop
+             (setf clients
+                   (delete-if-not #'open-stream-p clients :key #'usocket:socket-stream))
+             (usocket:wait-for-input (cons server clients)
+                                     :timeout 10)
+             (when (member (usocket:socket-state server) '(:read :read-write))
+               (let ((client (usocket:socket-accept server)))
+                 (push client clients)))
+             (dolist (socket clients)
+               (when (member (usocket:socket-state socket) '(:read :read-write))
+                 (handler-case
+                     (handle-request transport socket)
+                   (eof ()
+                     (usocket:socket-close socket)
+                     (setf clients (delete socket clients)))))))
+        (mapc #'usocket:socket-close clients)))))
 
 (defmethod start-client ((transport tcp-transport))
-  (setf (tcp-transport-socket transport)
+  (setf (transport-handle transport)
         (usocket:socket-connect (tcp-transport-host transport)
                                 (tcp-transport-port transport)
                                 :element-type '(unsigned-byte 8)))
   transport)
 
-(defmethod handle-request ((transport tcp-transport) socket)
-  (handler-case
-      (funcall (transport-app transport)
-               (receive-message-using-transport transport socket))
-    (eof ()
-      (usocket:socket-close socket)
-      (setf (transport-clients transport)
-            (remove socket (transport-clients transport))))))
+(defmethod handle-request ((transport tcp-transport) handle)
+  (funcall (transport-app transport)
+           (receive-message-using-transport transport handle)))
 
-(defmethod send-message-using-transport ((transport tcp-transport) message)
+(defmethod send-message-using-transport ((transport tcp-transport) socket message)
   (let ((json (yason:with-output-to-string* ()
-                (yason:encode-object message))))
-    (format (usocket:socket-stream (tcp-transport-socket transport))
-            "Content-Length: ~A~C~C~:*~:*~C~C~A"
-            (length json)
-            #\Return
-            #\Newline
-            json)))
+                (yason:encode-object message)))
+        (stream (usocket:socket-stream socket)))
+    (write-sequence
+     (string-to-utf-8-bytes
+      (format nil
+              "Content-Length: ~A~C~C~:*~:*~C~C~A"
+              (length json)
+              #\Return
+              #\Newline
+              json))
+     stream)
+    (force-output stream)))
 
-(defmethod receive-message-using-transport ((transport tcp-transport)
-                                            &optional (socket (tcp-transport-socket transport)))
+(defmethod receive-message-using-transport ((transport tcp-transport) socket)
   (let* ((stream (usocket:socket-stream socket))
          (headers (read-headers stream))
          (length (ignore-errors (parse-integer (gethash "content-length" headers)))))
