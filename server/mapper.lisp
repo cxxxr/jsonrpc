@@ -7,7 +7,8 @@
                 #:make-response
                 #:request-id)
   (:import-from #:jsonrpc/errors
-                #:jsonrpc-method-not-found)
+                #:jsonrpc-method-not-found
+                #:jsonrpc-invalid-params)
   (:export #:make-mapper
            #:register-method
            #:to-app))
@@ -27,7 +28,18 @@
     (let ((handler (find-handler mapper (request-method message))))
       (unless handler
         (error 'jsonrpc-method-not-found))
-      (let ((result (apply handler (request-params message))))
+      (let ((result (handler-bind (#+ccl
+                                   (ccl::wrong-number-of-arguments
+                                     (lambda (e)
+                                       (declare (ignore e))
+                                       (error 'jsonrpc-invalid-params)))
+                                   #+sbcl
+                                   (sb-int::simple-program-error
+                                     (lambda (e)
+                                       (let ((message (simple-condition-format-control e)))
+                                         (when (equal message "invalid number of arguments: ~S")
+                                           (error 'jsonrpc-invalid-params))))))
+                      (apply handler (request-params message)))))
         (when (request-id message)
           (make-response :id (request-id message)
                          :result result))))))
