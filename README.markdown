@@ -7,7 +7,7 @@ JSON-RPC 2.0 server/client for Common Lisp.
 ```common-lisp
 ;; server
 (defvar *mapper* (jsonrpc:make-mapper))
-(register-method *mapper* "sum" (lambda (&rest args) (reduct #'+ args)))
+(jsonrpc:register-method *mapper* "sum" (lambda (&rest args) (reduce #'+ args)))
 
 (jsonrpc:server-listen *mapper* :port 50879)
 ```
