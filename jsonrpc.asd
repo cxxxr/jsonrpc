@@ -16,7 +16,7 @@
    (:file "transports" :depends-on ("transport"))
    (:module "transport"
     :serial t
-    :depends-on ("request-response" "utils")
+    :depends-on ("request-response" "utils" "errors")
     :components
     ((:file "interface")
      (:file "tcp")))

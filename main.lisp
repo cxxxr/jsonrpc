@@ -68,7 +68,9 @@
      transport)
     (let ((response (receive-message transport)))
       (when (response-error response)
-        (error "JSON-RPC response error: ~A" (response-error response)))
+        (error "JSON-RPC response error: ~A (Code: ~A)"
+               (response-error-message response)
+               (response-error-code response)))
       (unless (equal (response-id response) id)
         (error "Unmatched response id"))
       (response-result response))))

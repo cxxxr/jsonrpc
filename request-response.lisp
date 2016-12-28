@@ -14,10 +14,13 @@
            #:response
            #:make-request
            #:make-response
+           #:make-error-response
            #:request-method
            #:request-params
            #:request-id
            #:response-error
+           #:response-error-message
+           #:response-error-code
            #:response-result
            #:response-id
            #:parse-message))
@@ -32,6 +35,24 @@
   error
   result
   id)
+
+(defun make-error-response (&key id code message (data nil data-specified-p))
+  (let ((hash (make-hash-table :test 'equal)))
+    (setf (gethash "code" hash) code
+          (gethash "message" hash) message)
+    (when data-specified-p
+      (setf (gethash "data" hash) data))
+    (make-response :error hash :id id)))
+
+(defun response-error-message (response)
+  (let ((error (response-error response)))
+    (when error
+      (gethash "message" error))))
+
+(defun response-error-code (response)
+  (let ((error (response-error response)))
+    (when error
+      (gethash "code" error))))
 
 (defun valid-request-p (request)
   (and (equal (gethash "jsonrpc" request) "2.0")

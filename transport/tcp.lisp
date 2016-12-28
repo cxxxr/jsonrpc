@@ -2,9 +2,12 @@
 (defpackage #:jsonrpc/transport/tcp
   (:use #:cl
         #:jsonrpc/utils
+        #:jsonrpc/errors
         #:jsonrpc/transport/interface)
   (:import-from #:jsonrpc/request-response
-                #:parse-message)
+                #:parse-message
+                #:make-error-response
+                #:request-id)
   (:import-from #:usocket)
   (:import-from #:yason)
   (:import-from #:fast-io
@@ -60,15 +63,28 @@
   transport)
 
 (defmethod handle-request ((transport tcp-transport) connection)
-  (let* ((message (receive-message-using-transport transport connection))
-         (response
-           (if (listp message)
-               ;; batch
-               (remove-if #'null
-                          (mapcar (transport-app transport) message))
-               (funcall (transport-app transport) message))))
-    (when response
-      (send-message-using-transport transport connection response))))
+  (flet ((process-message (message)
+           (handler-case (funcall (transport-app transport) message)
+             (jsonrpc-error (e)
+               (make-error-response
+                :id (request-id message)
+                :code (jsonrpc-error-code e)
+                :message (jsonrpc-error-message e)))
+             (error ()
+               (let ((e (make-condition 'jsonrpc-internal-error)))
+                 (make-error-response
+                  :id (request-id message)
+                  :code (jsonrpc-error-code e)
+                  :message (jsonrpc-error-message e)))))))
+    (let* ((message (receive-message-using-transport transport connection))
+           (response
+             (if (listp message)
+                 ;; batch
+                 (remove-if #'null
+                            (mapcar #'process-message message))
+                 (funcall #'process-message message))))
+      (when response
+        (send-message-using-transport transport connection response)))))
 
 (defmethod send-message-using-transport ((transport tcp-transport) connection message)
   (let ((json (yason:with-output-to-string* ()

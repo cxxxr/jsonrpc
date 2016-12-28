@@ -26,7 +26,9 @@
   ((code :initform -32600)
    (message :initform "Invalid Request")))
 
-(define-condition jsonrpc-invalid-response (jsonrpc-error) ())
+(define-condition jsonrpc-invalid-response (jsonrpc-error)
+  ((code :initform -32000)
+   (message :initform "Invalid Response")))
 
 (define-condition jsonrpc-method-not-found (jsonrpc-error)
   ((code :initform -32601)
