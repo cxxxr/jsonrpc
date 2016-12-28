@@ -3,8 +3,9 @@
   (:use #:cl
         #:jsonrpc/errors)
   (:import-from #:yason
+                #:with-output
                 #:parse
-                #:encode-object
+                #:encode
                 #:with-object
                 #:encode-object-element)
   (:import-from #:alexandria
@@ -100,20 +101,22 @@
         (hash-table
          (make-message message))))))
 
-(defmethod yason:encode-object ((request request))
-  (yason:with-object ()
-    (yason:encode-object-element "jsonrpc" "2.0")
-    (yason:encode-object-element "method" (request-method request))
-    (yason:encode-object-element "params" (request-params request))
-    (when (request-id request)
-      (yason:encode-object-element "id" (request-id request)))))
+(defmethod yason:encode ((request request) &optional (stream *standard-output*))
+  (yason:with-output (stream)
+    (yason:with-object ()
+      (yason:encode-object-element "jsonrpc" "2.0")
+      (yason:encode-object-element "method" (request-method request))
+      (yason:encode-object-element "params" (request-params request))
+      (when (request-id request)
+        (yason:encode-object-element "id" (request-id request))))))
 
-(defmethod yason:encode-object ((response response))
-  (yason:with-object ()
-    (yason:encode-object-element "jsonrpc" "2.0")
-    (cond
-      ((response-error response)
-       (yason:encode-object-element "error" (response-error response)))
-      ((response-result response)
-       (yason:encode-object-element "result" (response-result response))))
-    (yason:encode-object-element "id" (response-id response))))
+(defmethod yason:encode ((response response) &optional (stream *standard-output*))
+  (yason:with-output (stream)
+    (yason:with-object ()
+      (yason:encode-object-element "jsonrpc" "2.0")
+      (cond
+        ((response-error response)
+         (yason:encode-object-element "error" (response-error response)))
+        ((response-result response)
+         (yason:encode-object-element "result" (response-result response))))
+      (yason:encode-object-element "id" (response-id response)))))

@@ -62,33 +62,9 @@
                                 :element-type '(unsigned-byte 8)))
   transport)
 
-(defmethod handle-request ((transport tcp-transport) connection)
-  (flet ((process-message (message)
-           (handler-case (funcall (transport-app transport) message)
-             (jsonrpc-error (e)
-               (make-error-response
-                :id (request-id message)
-                :code (jsonrpc-error-code e)
-                :message (jsonrpc-error-message e)))
-             (error ()
-               (let ((e (make-condition 'jsonrpc-internal-error)))
-                 (make-error-response
-                  :id (request-id message)
-                  :code (jsonrpc-error-code e)
-                  :message (jsonrpc-error-message e)))))))
-    (let* ((message (receive-message-using-transport transport connection))
-           (response
-             (if (listp message)
-                 ;; batch
-                 (remove-if #'null
-                            (mapcar #'process-message message))
-                 (funcall #'process-message message))))
-      (when response
-        (send-message-using-transport transport connection response)))))
-
 (defmethod send-message-using-transport ((transport tcp-transport) connection message)
   (let ((json (yason:with-output-to-string* ()
-                (yason:encode-object message)))
+                (yason:encode message)))
         (stream (usocket:socket-stream connection)))
     (write-sequence
      (string-to-utf-8-bytes

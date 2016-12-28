@@ -1,12 +1,17 @@
 (in-package #:cl-user)
 (defpackage #:jsonrpc/transport/interface
-  (:use #:cl)
+  (:use #:cl
+        #:jsonrpc/errors)
+  (:import-from #:jsonrpc/request-response
+                #:request-id
+                #:make-error-response)
   (:export #:transport
            #:transport-app
            #:transport-connection
            #:start-server
            #:start-client
            #:handle-request
+           #:process-message
            #:send-message-using-transport
            #:receive-message-using-transport
            #:send-message
@@ -24,9 +29,37 @@
 
 (defgeneric start-server (transport))
 
-(defgeneric start-client (transport))
+(defgeneric start-client (transport)
+  (:method (transport)
+    transport))
+
+(defgeneric process-message (transport message)
+  (:method (transport message)
+    (if (listp message)
+        (remove-if #'null
+                   (mapcar (lambda (message)
+                             (process-message transport message))
+                           message))
+        (handler-case (funcall (transport-app transport) message)
+          (jsonrpc-error (e)
+            (make-error-response
+             :id (request-id message)
+             :code (jsonrpc-error-code e)
+             :message (jsonrpc-error-message e)))
+          (error ()
+            (let ((e (make-condition 'jsonrpc-internal-error)))
+              (make-error-response
+               :id (request-id message)
+               :code (jsonrpc-error-code e)
+               :message (jsonrpc-error-message e))))))))
 
 (defgeneric handle-request (transport connection)
+  (:method (connection transport)
+    (let ((message (receive-message-using-transport transport connection)))
+      (when message
+        (let ((response (process-message transport message)))
+          (when response
+            (send-message-using-transport transport connection response))))))
   (:method :around (transport connection)
     (let ((*transport* transport)
           (*connection* connection))
