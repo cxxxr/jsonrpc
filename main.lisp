@@ -13,9 +13,24 @@
                 #:make-mapper
                 #:register-method)
   (:export
+   ;; from request-response
+   #:request
+   #:response
+   #:make-request
+   #:make-response
+   #:request-method
+   #:request-params
+   #:request-id
+   #:response-error
+   #:response-result
+   #:response-id
+   #:parse-message
+
    ;; from transports
    #:transport
    #:tcp-transport
+   #:send-message
+   #:receive-message
 
    ;; from server
    #:server-listen
