@@ -19,6 +19,7 @@
     :depends-on ("request-response" "utils" "errors")
     :components
     ((:file "interface")
-     (:file "tcp")))
+     (:file "tcp")
+     (:file "stdio")))
    (:file "utils")
    (:file "errors")))
