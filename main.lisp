@@ -59,7 +59,7 @@
    #:notify))
 (in-package #:jsonrpc)
 
-(defun call (transport method &rest params)
+(defun call (transport method &optional params)
   (let ((id (make-id)))
     (send-message
      (make-request :id id
@@ -75,7 +75,7 @@
         (error "Unmatched response id"))
       (response-result response))))
 
-(defun notify (transport method &rest params)
+(defun notify (transport method &optional params)
   (send-message
    (make-request :method method
                  :params params)

@@ -15,7 +15,7 @@ JSON-RPC 2.0 server/client for Common Lisp.
 ```common-lisp
 ;; client
 (let ((client (jsonrpc:client-connect :host "127.0.0.1" :port 50879)))
-  (jsonrpc:call client "sum" 10 20))
+  (jsonrpc:call client "sum" '(10 20)))
 ;=> 30
 ```
 
