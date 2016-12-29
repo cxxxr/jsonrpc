@@ -63,8 +63,8 @@
   transport)
 
 (defmethod send-message-using-transport ((transport tcp-transport) connection message)
-  (let ((json (yason:with-output-to-string* ()
-                (yason:encode message)))
+  (let ((json (with-output-to-string (s)
+                (yason:encode message s)))
         (stream (usocket:socket-stream connection)))
     (write-sequence
      (string-to-utf-8-bytes

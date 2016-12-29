@@ -54,7 +54,7 @@
                :message (jsonrpc-error-message e))))))))
 
 (defgeneric handle-request (transport connection)
-  (:method (connection transport)
+  (:method (transport connection)
     (let ((message (receive-message-using-transport transport connection)))
       (when message
         (let ((response (process-message transport message)))

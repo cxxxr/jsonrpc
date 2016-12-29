@@ -2,6 +2,8 @@
 (defpackage #:jsonrpc/transport/stdio
   (:use #:cl
         #:jsonrpc/transport/interface)
+  (:import-from #:jsonrpc/request-response
+                #:parse-message)
   (:export #:stdio-transport))
 (in-package #:jsonrpc/transport/stdio)
 
@@ -22,7 +24,8 @@
                                          (stdio-transport-output transport)))))
 
 (defmethod send-message-using-transport ((transport stdio-transport) stream message)
-  (let ((json (yason:encode message nil)))
+  (let ((json (with-output-to-string (s)
+                (yason:encode message s))))
     (format stream "Content-Length: ~A~C~C~:*~:*~C~C~A"
             (length json)
             #\Return
@@ -31,8 +34,8 @@
     (force-output stream)))
 
 (defmethod receive-message-using-transport ((transport stdio-transport) stream)
-  (let ((headers (read-headers stream))
-        (length (ignore-errors (parse-integer (gethash "content-length" headers)))))
+  (let* ((headers (read-headers stream))
+         (length (ignore-errors (parse-integer (gethash "content-length" headers)))))
     (when length
       (let ((body (make-string length)))
         (read-sequence body (stdio-transport-input transport))

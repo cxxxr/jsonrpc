@@ -79,27 +79,28 @@
               (hash-table-keys response))))
 
 (defun parse-message (input)
-  (let ((message (handler-case (yason:parse input)
-                   (error () (error 'jsonrpc-parse-error)))))
-    (flet ((make-message (hash)
-             (if (gethash "method" hash)
-                 (progn
-                   (unless (valid-request-p hash)
-                     (error 'jsonrpc-invalid-request))
-                   (make-request :method (gethash "method" hash)
-                                 :params (gethash "params" hash)
-                                 :id (gethash "id" hash)))
-                 (progn
-                   (unless (valid-response-p hash)
-                     (error 'jsonrpc-invalid-response))
-                   (make-response :result (gethash "result" hash)
-                                  :error (gethash "error" hash)
-                                  :id (gethash "id" hash))))))
-      (etypecase message
-        (array
-         (map 'list #'make-message message))
-        (hash-table
-         (make-message message))))))
+  (when (< 0 (length input))
+    (let ((message (handler-case (yason:parse input)
+                     (error () (error 'jsonrpc-parse-error)))))
+      (flet ((make-message (hash)
+               (if (gethash "method" hash)
+                   (progn
+                     (unless (valid-request-p hash)
+                       (error 'jsonrpc-invalid-request))
+                     (make-request :method (gethash "method" hash)
+                                   :params (gethash "params" hash)
+                                   :id (gethash "id" hash)))
+                   (progn
+                     (unless (valid-response-p hash)
+                       (error 'jsonrpc-invalid-response))
+                     (make-response :result (gethash "result" hash)
+                                    :error (gethash "error" hash)
+                                    :id (gethash "id" hash))))))
+        (etypecase message
+          (array
+           (map 'list #'make-message message))
+          (hash-table
+           (make-message message)))))))
 
 (defmethod yason:encode ((request request) &optional (stream *standard-output*))
   (yason:with-output (stream)
