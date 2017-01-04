@@ -8,6 +8,7 @@
   (:export #:transport
            #:transport-app
            #:transport-connection
+           #:transport-data
            #:start-server
            #:start-client
            #:handle-request
@@ -25,7 +26,9 @@
   ((app :type function
         :initarg :app
         :accessor transport-app)
-   (connection :accessor transport-connection)))
+   (connection :accessor transport-connection)
+   (data :initform nil
+         :accessor transport-data)))
 
 (defgeneric start-server (transport))
 
