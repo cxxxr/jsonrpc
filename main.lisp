@@ -29,6 +29,7 @@
    ;; from transports
    #:transport
    #:tcp-transport
+   #:transport-data
    #:send-message
    #:receive-message
 
