@@ -14,11 +14,15 @@
            #:to-app))
 (in-package #:jsonrpc/server/mapper)
 
+(defstruct handler
+  function
+  return)
+
 (defun make-mapper ()
   (make-hash-table :test 'equal))
 
-(defun register-method (mapper method-name function)
-  (setf (gethash method-name mapper) function))
+(defun register-method (mapper method-name function &optional (return t))
+  (setf (gethash method-name mapper) (make-handler :function function :return return)))
 
 (defun find-handler (mapper method-name)
   (gethash method-name mapper))
@@ -39,7 +43,8 @@
                                        (let ((message (simple-condition-format-control e)))
                                          (when (equal message "invalid number of arguments: ~S")
                                            (error 'jsonrpc-invalid-params))))))
-                      (apply handler (request-params message)))))
-        (when (request-id message)
+                      (apply (handler-function handler) (request-params message)))))
+        (when (and (request-id message)
+                   (handler-return handler))
           (make-response :id (request-id message)
                          :result result))))))
