@@ -7,16 +7,12 @@
                 #:tcp-transport
                 #:stdio-transport
                 #:start-server)
+  (:import-from #:jsonrpc/utils
+                #:find-mode-class)
   (:import-from #:alexandria
                 #:remove-from-plist)
   (:export #:server-listen))
 (in-package #:jsonrpc/server)
-
-(defun find-mode-class (mode)
-  (let ((package (find-package (format nil "~A/~A"
-                                       :jsonrpc/transport
-                                       mode))))
-    (find-class (intern (format nil "~A-~A" mode :transport) package))))
 
 (defun server-listen (mapper &rest initargs &key (mode :tcp) &allow-other-keys)
   (let ((class (find-mode-class mode))

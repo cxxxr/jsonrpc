@@ -6,7 +6,8 @@
                 #:socket-close
                 #:address-in-use-error)
   (:export #:random-port
-           #:make-id))
+           #:make-id
+           #:find-mode-class))
 (in-package #:jsonrpc/utils)
 
 (defun port-available-p (port)
@@ -30,3 +31,9 @@
               ((0 1) (code-char (+ #.(char-code #\a) (random 26))))
               ((2 3) (code-char (+ #.(char-code #\A) (random 26))))
               ((4) (code-char (+ #.(char-code #\0) (random 10)))))))))
+
+(defun find-mode-class (mode)
+  (let ((package (find-package (format nil "~A/~A"
+                                       :jsonrpc/transport
+                                       mode))))
+    (find-class (intern (format nil "~A-~A" mode :transport) package))))
