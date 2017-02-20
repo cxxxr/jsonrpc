@@ -1,6 +1,10 @@
 (in-package #:cl-user)
 
 (asdf:defsystem #:jsonrpc
+  :version "0.1.0"
+  :author "Eitaro Fukamachi"
+  :license "BSD 2-Clause"
+  :description "JSON-RPC 2.0 server/client implementation"
   :depends-on (#:yason
                #:usocket
                #:fast-io

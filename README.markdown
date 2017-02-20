@@ -43,4 +43,4 @@ Copyright (c) 2016 Eitaro Fukamachi (e.arrows@gmail.com)
 
 ## License
 
-TBD
+Licensed under the BSD 2-Clause License.
