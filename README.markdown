@@ -19,6 +19,18 @@ JSON-RPC 2.0 server/client for Common Lisp.
 ;=> 30
 ```
 
+## Extension
+
+### WebSocket transport
+
+```common-lisp
+(ql:quickload :jsonrpc-websocket)
+
+(defvar *mapper* (jsonrpc:make-mapper))
+(jsonrpc:register-method *mapper* "sum" (lambda (&rest args) (reduce #'+ args)))
+(jsonrpc:server-listen *mapper* :port 50879 :mode :websocket)
+```
+
 ## Author
 
 * Eitaro Fukamachi (e.arrows@gmail.com)

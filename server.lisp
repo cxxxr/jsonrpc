@@ -12,10 +12,13 @@
   (:export #:server-listen))
 (in-package #:jsonrpc/server)
 
+(defun find-mode-class (mode)
+  (let ((package (find-package (format nil "~A/~A"
+                                       :jsonrpc/transport
+                                       mode))))
+    (find-class (intern (format nil "~A-~A" mode :transport) package))))
+
 (defun server-listen (mapper &rest initargs &key (mode :tcp) &allow-other-keys)
-  (let ((class
-          (ecase mode
-            (:tcp 'jsonrpc/transports:tcp-transport)
-            (:stdio 'jsonrpc/transports:stdio-transport)))
+  (let ((class (find-mode-class mode))
         (initargs (remove-from-plist initargs :mode)))
     (start-server (apply #'make-instance class :app (to-app mapper) initargs))))
