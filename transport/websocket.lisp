@@ -22,6 +22,8 @@
    (server :accessor websocket-transport-server
            :initarg :server
            :initform :hunchentoot)
+   (debug :initarg :debug
+          :initform t)
    (connect-cb :initarg :connect-cb
                :type (or null function)
                :initform nil)
@@ -51,6 +53,7 @@
    :host (websocket-transport-host transport)
    :port (websocket-transport-port transport)
    :server (websocket-transport-server transport)
+   :debug (slot-value transport 'debug)
    :use-thread nil))
 
 (defmethod start-client ((transport websocket-transport))
