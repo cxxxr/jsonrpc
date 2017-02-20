@@ -5,6 +5,8 @@
         #:jsonrpc/utils)
   (:import-from #:jsonrpc/request-response
                 #:parse-message)
+  (:import-from #:jsonrpc/errors
+                #:jsonrpc-error)
   (:import-from #:bordeaux-threads)
   (:import-from #:yason)
   (:import-from #:websocket-driver)
@@ -38,7 +40,10 @@
      (let ((ws (wsd:make-server env)))
        (wsd:on :message ws
                (lambda (input)
-                 (let ((message (parse-message input)))
+                 (let ((message (handler-case (parse-message input)
+                                  (jsonrpc-error ()
+                                    ;; Nothing can be done
+                                    nil))))
                    (when message
                      (let ((response (process-message transport message)))
                        (when response

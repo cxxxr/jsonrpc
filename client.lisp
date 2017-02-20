@@ -11,7 +11,9 @@
   (:export #:client-connect))
 (in-package #:jsonrpc/client)
 
-(defun client-connect (&rest initargs &key (mode :tcp))
+(defun client-connect (&rest initargs &key (mode :tcp) &allow-other-keys)
   (let ((class (find-mode-class mode))
         (initargs (remove-from-plist initargs :mode)))
+    (unless class
+      (error "Unknown mode ~A" mode))
     (start-client (apply #'make-instance class initargs))))

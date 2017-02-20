@@ -61,6 +61,7 @@
 (in-package #:jsonrpc)
 
 (defun call (transport method &optional params)
+  (check-type params (or list hash-table structure-object standard-object))
   (let ((id (make-id)))
     (send-message
      (make-request :id id
