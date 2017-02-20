@@ -39,7 +39,7 @@
                                        (let ((message (simple-condition-format-control e)))
                                          (when (equal message "invalid number of arguments: ~S")
                                            (error 'jsonrpc-invalid-params))))))
-                      (apply handler (request-params message)))))
+                      (funcall handler (request-params message)))))
         (when (request-id message)
           (make-response :id (request-id message)
                          :result result))))))
