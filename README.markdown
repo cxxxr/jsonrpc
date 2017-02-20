@@ -1,5 +1,7 @@
 # jsonrpc
 
+[![Quicklisp dist](http://quickdocs.org/badge/jsonrpc.svg)](http://quickdocs.org/jsonrpc/)
+
 JSON-RPC 2.0 server/client for Common Lisp.
 
 ## Usage
