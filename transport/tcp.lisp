@@ -9,6 +9,7 @@
                 #:make-error-response
                 #:request-id)
   (:import-from #:usocket)
+  (:import-from #:quri)
   (:import-from #:yason)
   (:import-from #:fast-io
                 #:make-output-buffer
@@ -28,7 +29,21 @@
          :initform "127.0.0.1")
    (port :accessor tcp-transport-port
          :initarg :port
-         :initform (random-port))))
+         :initform (random-port))
+   (securep :accessor tcp-transport-secure-p
+            :initarg :securep)))
+
+(defmethod initialize-instance :after ((transport tcp-transport) &rest initargs &key url &allow-other-keys)
+  (declare (ignore initargs))
+  (when url
+    (let ((uri (quri:uri url)))
+      (unless (quri:uri-http-p uri)
+        (error "Only http or https are supported for tcp-transport (specified ~S)" (quri:uri-scheme uri)))
+      (setf (tcp-transport-secure-p transport)
+            (equalp (quri:uri-scheme uri) "https"))
+      (setf (tcp-transport-host transport) (quri:uri-host uri))
+      (setf (tcp-transport-port transport) (quri:uri-port uri))))
+  transport)
 
 (defmethod start-server ((transport tcp-transport))
   (usocket:with-socket-listener (server (tcp-transport-host transport)
@@ -57,15 +72,15 @@
 
 (defmethod start-client ((transport tcp-transport))
   (setf (transport-connection transport)
-        (usocket:socket-connect (tcp-transport-host transport)
-                                (tcp-transport-port transport)
-                                :element-type '(unsigned-byte 8)))
+        (usocket:socket-stream
+         (usocket:socket-connect (tcp-transport-host transport)
+                                 (tcp-transport-port transport)
+                                 :element-type '(unsigned-byte 8))))
   transport)
 
-(defmethod send-message-using-transport ((transport tcp-transport) connection message)
+(defmethod send-message-using-transport ((transport tcp-transport) stream message)
   (let ((json (with-output-to-string (s)
-                (yason:encode message s)))
-        (stream (usocket:socket-stream connection)))
+                (yason:encode message s))))
     (write-sequence
      (string-to-utf-8-bytes
       (format nil
@@ -77,9 +92,8 @@
      stream)
     (force-output stream)))
 
-(defmethod receive-message-using-transport ((transport tcp-transport) connection)
-  (let* ((stream (usocket:socket-stream connection))
-         (headers (read-headers stream))
+(defmethod receive-message-using-transport ((transport tcp-transport) stream)
+  (let* ((headers (read-headers stream))
          (length (ignore-errors (parse-integer (gethash "content-length" headers)))))
     (when length
       (let ((body (make-array length :element-type '(unsigned-byte 8))))
