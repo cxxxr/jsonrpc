@@ -21,6 +21,8 @@
    (port :accessor websocket-transport-port
          :initarg :port
          :initform (random-port))
+   (securep :accessor websocket-transport-secure-p
+            :initarg :securep)
    (server :accessor websocket-transport-server
            :initarg :server
            :initform :hunchentoot)
@@ -33,6 +35,18 @@
                  :accessor client-queue)
    (client-queue-lock :initform (bt:make-lock)
                       :accessor client-queue-lock)))
+
+(defmethod initialize-instance :after ((transport websocket-transport) &rest initargs &key url &allow-other-keys)
+  (declare (ignore initargs))
+  (when url
+    (let ((uri (quri:uri url)))
+      (unless (member (quri:uri-scheme uri) '("ws" "wss") :test #'equalp)
+        (error "Only ws or wss are supported for websocket-transport (specified ~S)" (quri:uri-scheme uri)))
+      (setf (websocket-transport-secure-p transport)
+            (equalp (quri:uri-scheme uri) "wss"))
+      (setf (websocket-transport-host transport) (quri:uri-host uri))
+      (setf (websocket-transport-port transport) (quri:uri-port uri))))
+  transport)
 
 (defmethod start-server ((transport websocket-transport))
   (clack:clackup
