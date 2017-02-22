@@ -65,7 +65,7 @@
          (wsd:on :open ws
                  (lambda ()
                    (funcall (slot-value transport 'connect-cb) ws))))
-       (setf (transport-connection transport ws))
+       (setf (transport-connection transport) ws)
        (lambda (responder)
          (declare (ignore responder))
          (wsd:start-connection ws))))
