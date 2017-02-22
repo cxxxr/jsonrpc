@@ -9,6 +9,7 @@
                 #:make-error-response
                 #:request-id)
   (:import-from #:usocket)
+  (:import-from #:cl+ssl)
   (:import-from #:quri)
   (:import-from #:yason)
   (:import-from #:fast-io
@@ -71,11 +72,15 @@
         (mapc #'usocket:socket-close clients)))))
 
 (defmethod start-client ((transport tcp-transport))
-  (setf (transport-connection transport)
-        (usocket:socket-stream
-         (usocket:socket-connect (tcp-transport-host transport)
-                                 (tcp-transport-port transport)
-                                 :element-type '(unsigned-byte 8))))
+  (let ((stream (usocket:socket-stream
+                 (usocket:socket-connect (tcp-transport-host transport)
+                                         (tcp-transport-port transport)
+                                         :element-type '(unsigned-byte 8)))))
+    (setf (transport-connection transport)
+          (if (tcp-transport-secure-p transport)
+              (cl+ssl:make-ssl-client-stream stream
+                                             :hostname (tcp-transport-host transport))
+              stream)))
   transport)
 
 (defmethod send-message-using-transport ((transport tcp-transport) stream message)

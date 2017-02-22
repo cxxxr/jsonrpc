@@ -76,7 +76,10 @@
    :use-thread nil))
 
 (defmethod start-client ((transport websocket-transport))
-  (let ((client (wsd:make-client (format nil "ws://~A:~A/"
+  (let ((client (wsd:make-client (format nil "~A://~A:~A/"
+                                         (if (websocket-transport-secure-p transport)
+                                             "wss"
+                                             "ws")
                                          (websocket-transport-host transport)
                                          (websocket-transport-port transport)))))
     (wsd:start-connection client)
