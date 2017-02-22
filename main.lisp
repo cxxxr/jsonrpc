@@ -3,7 +3,7 @@
   (:nicknames #:jsonrpc/main)
   (:use #:cl
         #:jsonrpc/request-response
-        #:jsonrpc/transports
+        #:jsonrpc/transport/interface
         #:jsonrpc/class
         #:jsonrpc/errors
         #:jsonrpc/class)
@@ -25,9 +25,6 @@
 
    ;; from transports
    #:transport
-   #:tcp-transport
-   #:stdio-transport
-   #:transport-data
    #:send-message
    #:receive-message
 

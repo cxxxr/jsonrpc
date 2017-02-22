@@ -5,7 +5,7 @@
                 #:make-mapper
                 #:to-app
                 #:register-method-to-mapper)
-  (:import-from #:jsonrpc/transports
+  (:import-from #:jsonrpc/transport/interface
                 #:transport
                 #:start-server
                 #:start-client)

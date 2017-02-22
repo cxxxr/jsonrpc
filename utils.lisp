@@ -33,7 +33,15 @@
               ((4) (code-char (+ #.(char-code #\0) (random 10)))))))))
 
 (defun find-mode-class (mode)
-  (let ((package (find-package (format nil "~A/~A"
-                                       :jsonrpc/transport
-                                       mode))))
-    (find-class (intern (format nil "~A-~A" mode :transport) package))))
+  (let ((system-name (format nil "jsonrpc/transport/~(~A~)" mode))
+        (package-name (format nil "~A/~A"
+                              :jsonrpc/transport
+                              mode)))
+    (when (asdf:find-system system-name nil)
+      #+quicklisp
+      (ql:quickload system-name)
+      #-quicklisp
+      (asdf:load-system system-name)
+      (let ((package (find-package package-name)))
+        (and package
+             (find-class (intern (format nil "~A-~A" mode :transport) package)))))))

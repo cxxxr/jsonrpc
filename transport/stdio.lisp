@@ -2,6 +2,7 @@
 (defpackage #:jsonrpc/transport/stdio
   (:use #:cl
         #:jsonrpc/transport/interface)
+  (:import-from #:yason)
   (:import-from #:jsonrpc/request-response
                 #:parse-message)
   (:export #:stdio-transport))
