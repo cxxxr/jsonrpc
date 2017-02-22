@@ -60,13 +60,12 @@
                                     ;; Nothing can be done
                                     nil))))
                    (when message
-                     (let ((response (process-message transport message)))
-                       (when response
-                         (send-message-using-transport transport ws response)))))))
+                     (handle-request-message transport ws message)))))
        (when (slot-value transport 'connect-cb)
          (wsd:on :open ws
                  (lambda ()
                    (funcall (slot-value transport 'connect-cb) ws))))
+       (setf (transport-connection transport ws))
        (lambda (responder)
          (declare (ignore responder))
          (wsd:start-connection ws))))

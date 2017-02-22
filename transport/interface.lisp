@@ -5,11 +5,13 @@
   (:import-from #:jsonrpc/request-response
                 #:request-id
                 #:make-error-response)
-  (:export #:transport
+  (:export #:*connection*
+           #:transport
            #:transport-message-callback
            #:transport-connection
            #:start-server
            #:start-client
+           #:handle-request-message
            #:handle-request
            #:process-message
            #:send-message-using-transport
@@ -52,17 +54,21 @@
                :code (jsonrpc-error-code e)
                :message (jsonrpc-error-message e))))))))
 
-(defgeneric handle-request (transport connection)
-  (:method (transport connection)
-    (let ((message (receive-message-using-transport transport connection)))
-      (when message
-        (let ((response (process-message transport message)))
-          (when response
-            (send-message-using-transport transport connection response))))))
-  (:method :around (transport connection)
+(defgeneric handle-request-message (transport connection message)
+  (:method (transport connection message)
+    (let ((response (process-message transport message)))
+      (when response
+        (send-message-using-transport transport connection response))))
+  (:method :around (transport connection message)
+    (declare (ignore message))
     (let ((*transport* transport)
           (*connection* connection))
       (call-next-method))))
+
+(defun handle-request (transport connection)
+  (let ((message (receive-message-using-transport transport connection)))
+    (when message
+      (handle-request-message transport connection message))))
 
 (defgeneric send-message-using-transport (to connection message))
 
