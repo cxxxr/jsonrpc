@@ -9,6 +9,7 @@
                 #:jsonrpc-error)
   (:import-from #:bordeaux-threads)
   (:import-from #:yason)
+  (:import-from #:quri)
   (:import-from #:websocket-driver)
   (:import-from #:clack)
   (:export #:websocket-transport))
