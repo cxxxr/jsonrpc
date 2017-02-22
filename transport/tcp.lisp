@@ -83,7 +83,7 @@
               stream)))
   transport)
 
-(defmethod send-message-using-transport ((transport tcp-transport) stream message)
+(defmethod send-message ((transport tcp-transport) stream message)
   (let ((json (with-output-to-string (s)
                 (yason:encode message s))))
     (write-sequence
@@ -97,7 +97,7 @@
      stream)
     (force-output stream)))
 
-(defmethod receive-message-using-transport ((transport tcp-transport) stream)
+(defmethod receive-message ((transport tcp-transport) stream)
   (let* ((headers (read-headers stream))
          (length (ignore-errors (parse-integer (gethash "content-length" headers)))))
     (when length

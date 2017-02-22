@@ -14,8 +14,8 @@
            #:handle-request-message
            #:handle-request
            #:process-message
-           #:send-message-using-transport
-           #:receive-message-using-transport
+           #:send-message
+           #:receive-message
            #:send-message
            #:receive-message))
 (in-package #:jsonrpc/transport/interface)
@@ -58,7 +58,7 @@
   (:method (transport connection message)
     (let ((response (process-message transport message)))
       (when response
-        (send-message-using-transport transport connection response))))
+        (send-message transport connection response))))
   (:method :around (transport connection message)
     (declare (ignore message))
     (let ((*transport* transport)
@@ -66,28 +66,10 @@
       (call-next-method))))
 
 (defun handle-request (transport connection)
-  (let ((message (receive-message-using-transport transport connection)))
+  (let ((message (receive-message transport connection)))
     (when message
       (handle-request-message transport connection message))))
 
-(defgeneric send-message-using-transport (to connection message))
+(defgeneric send-message (transport to message))
 
-(defgeneric receive-message-using-transport (from connection))
-
-(defun send-message (message &optional to)
-  (typecase to
-    (transport
-     (send-message-using-transport to (transport-connection to) message))
-    (null
-     (send-message-using-transport *transport* *connection* message))
-    (otherwise
-     (send-message-using-transport *transport* to message))))
-
-(defun receive-message (&optional from)
-  (typecase from
-    (transport
-     (receive-message-using-transport from (transport-connection from)))
-    (null
-     (receive-message-using-transport *transport* *connection*))
-    (otherwise
-     (receive-message-using-transport *transport* from))))
+(defgeneric receive-message (transport from))

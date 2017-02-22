@@ -92,12 +92,12 @@
                 (vector-push-extend message (client-queue transport)))))
     transport))
 
-(defmethod send-message-using-transport ((transport websocket-transport) ws message)
+(defmethod send-message ((transport websocket-transport) ws message)
   (let ((json (with-output-to-string (s)
                 (yason:encode message s))))
     (wsd:send ws json)))
 
-(defmethod receive-message-using-transport ((transport websocket-transport) connection)
+(defmethod receive-message ((transport websocket-transport) connection)
   (loop while (= (length (client-queue transport)) 0)
         do (sleep 0.1))
   (parse-message

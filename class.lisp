@@ -8,7 +8,9 @@
   (:import-from #:jsonrpc/transport/interface
                 #:transport
                 #:start-server
-                #:start-client)
+                #:start-client
+                #:send-message
+                #:receive-message)
   (:import-from #:jsonrpc/utils
                 #:find-mode-class)
   (:import-from #:alexandria
@@ -65,3 +67,9 @@
         (setf (jsonrpc-transport client) transport)
         (start-client transport)))
     client))
+
+(defmethod send-message ((to jsonrpc) connection message)
+  (send-message (jsonrpc-transport to) connection message))
+
+(defmethod receive-message ((from jsonrpc) connection)
+  (receive-message (jsonrpc-transport from) connection))

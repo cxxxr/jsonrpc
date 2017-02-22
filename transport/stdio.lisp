@@ -27,7 +27,7 @@
 (defmethod start-client ((transport stdio-transport))
   (loop))
 
-(defmethod send-message-using-transport ((transport stdio-transport) stream message)
+(defmethod send-message ((transport stdio-transport) stream message)
   (let ((json (with-output-to-string (s)
                 (yason:encode message s))))
     (format stream "Content-Length: ~A~C~C~:*~:*~C~C~A"
@@ -37,7 +37,7 @@
             json)
     (force-output stream)))
 
-(defmethod receive-message-using-transport ((transport stdio-transport) stream)
+(defmethod receive-message ((transport stdio-transport) stream)
   (let* ((headers (read-headers stream))
          (length (ignore-errors (parse-integer (gethash "content-length" headers)))))
     (when length

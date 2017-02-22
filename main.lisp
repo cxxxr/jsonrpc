@@ -55,14 +55,13 @@
 
 (defun call (jsonrpc method &optional params)
   (check-type params (or list hash-table structure-object standard-object))
-  (let ((id (make-id))
-        (transport (jsonrpc-transport jsonrpc)))
-    (send-message
-     (make-request :id id
-                   :method method
-                   :params params)
-     transport)
-    (let ((response (receive-message transport)))
+  (let ((id (make-id)))
+    (send-message jsonrpc
+                  *connection*
+                  (make-request :id id
+                                :method method
+                                :params params))
+    (let ((response (receive-message jsonrpc *connection*)))
       (when (response-error response)
         (error "JSON-RPC response error: ~A (Code: ~A)"
                (response-error-message response)
@@ -72,10 +71,10 @@
       (response-result response))))
 
 (defun notify (jsonrpc method &optional params)
-  (send-message
-   (make-request :method method
-                 :params params)
-   (jsonrpc-transport jsonrpc)))
+  (send-message jsonrpc
+                *connection*
+                (make-request :method method
+                              :params params)))
 
 (defun make-client ()
   (make-instance 'client))
