@@ -6,7 +6,7 @@
                 #:request-id
                 #:make-error-response)
   (:export #:transport
-           #:transport-app
+           #:transport-message-callback
            #:transport-connection
            #:transport-data
            #:start-server
@@ -23,9 +23,8 @@
 (defvar *connection*)
 
 (defclass transport ()
-  ((app :type function
-        :initarg :app
-        :accessor transport-app)
+  ((message-callback :initarg :message-callback
+                     :accessor transport-message-callback)
    (connection :accessor transport-connection)
    (data :initform nil
          :accessor transport-data)))
@@ -43,7 +42,7 @@
                    (mapcar (lambda (message)
                              (process-message transport message))
                            message))
-        (handler-case (funcall (transport-app transport) message)
+        (handler-case (funcall (transport-message-callback transport) message)
           (jsonrpc-error (e)
             (make-error-response
              :id (request-id message)

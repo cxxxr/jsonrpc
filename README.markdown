@@ -8,16 +8,17 @@ JSON-RPC 2.0 server/client for Common Lisp.
 
 ```common-lisp
 ;; server
-(defvar *mapper* (jsonrpc:make-mapper))
-(jsonrpc:register-method *mapper* "sum" (lambda (args) (reduce #'+ args)))
+(defvar *server* (jsonrpc:make-server))
+(jsonrpc:register-method *server* "sum" (lambda (args) (reduce #'+ args)))
 
-(jsonrpc:server-listen *mapper* :port 50879)
+(jsonrpc:server-listen *server* :port 50879 :mode :tcp)
 ```
 
 ```common-lisp
 ;; client
-(let ((client (jsonrpc:client-connect :host "127.0.0.1" :port 50879)))
-  (jsonrpc:call client "sum" '(10 20)))
+(defvar *client* (jsonrpc:make-client))
+(jsonrpc:client-connect *client* :host "127.0.0.1" :port 50879)
+(jsonrpc:call *client* "sum" '(10 20))
 ;=> 30
 ```
 
@@ -28,9 +29,9 @@ JSON-RPC 2.0 server/client for Common Lisp.
 ```common-lisp
 (ql:quickload :jsonrpc-websocket)
 
-(defvar *mapper* (jsonrpc:make-mapper))
-(jsonrpc:register-method *mapper* "sum" (lambda (args) (reduce #'+ args)))
-(jsonrpc:server-listen *mapper* :port 50879 :mode :websocket)
+(defvar *server* (jsonrpc:make-server))
+(jsonrpc:register-method *server* "sum" (lambda (args) (reduce #'+ args)))
+(jsonrpc:server-listen *server* :port 50879 :mode :websocket)
 ```
 
 ## Author

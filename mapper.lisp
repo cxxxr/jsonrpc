@@ -1,5 +1,5 @@
 (in-package #:cl-user)
-(defpackage #:jsonrpc/server/mapper
+(defpackage #:jsonrpc/mapper
   (:use #:cl)
   (:import-from #:jsonrpc/request-response
                 #:request-method
@@ -10,14 +10,14 @@
                 #:jsonrpc-method-not-found
                 #:jsonrpc-invalid-params)
   (:export #:make-mapper
-           #:register-method
+           #:register-method-to-mapper
            #:to-app))
-(in-package #:jsonrpc/server/mapper)
+(in-package #:jsonrpc/mapper)
 
 (defun make-mapper ()
   (make-hash-table :test 'equal))
 
-(defun register-method (mapper method-name function)
+(defun register-method-to-mapper (mapper method-name function)
   (setf (gethash method-name mapper) function))
 
 (defun find-handler (mapper method-name)

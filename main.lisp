@@ -4,14 +4,11 @@
   (:use #:cl
         #:jsonrpc/request-response
         #:jsonrpc/transports
-        #:jsonrpc/server
-        #:jsonrpc/client
-        #:jsonrpc/errors)
+        #:jsonrpc/class
+        #:jsonrpc/errors
+        #:jsonrpc/class)
   (:import-from #:jsonrpc/utils
                 #:make-id)
-  (:import-from #:jsonrpc/server/mapper
-                #:make-mapper
-                #:register-method)
   (:export
    ;; from request-response
    #:request
@@ -29,19 +26,15 @@
    ;; from transports
    #:transport
    #:tcp-transport
+   #:stdio-transport
    #:transport-data
    #:send-message
    #:receive-message
 
-   ;; from server
+   ;; from class
    #:server-listen
-
-   ;; from server/mapper
-   #:make-mapper
-   #:register-method
-
-   ;; from client
    #:client-connect
+   #:register-method
 
    ;; from errors
    #:jsonrpc-error
@@ -57,12 +50,15 @@
 
    ;; from this package
    #:call
-   #:notify))
+   #:notify
+   #:make-server
+   #:make-client))
 (in-package #:jsonrpc)
 
-(defun call (transport method &optional params)
+(defun call (jsonrpc method &optional params)
   (check-type params (or list hash-table structure-object standard-object))
-  (let ((id (make-id)))
+  (let ((id (make-id))
+        (transport (jsonrpc-transport jsonrpc)))
     (send-message
      (make-request :id id
                    :method method
@@ -77,8 +73,14 @@
         (error "Unmatched response id"))
       (response-result response))))
 
-(defun notify (transport method &optional params)
+(defun notify (jsonrpc method &optional params)
   (send-message
    (make-request :method method
                  :params params)
-   transport))
+   (jsonrpc-transport jsonrpc)))
+
+(defun make-client ()
+  (make-instance 'client))
+
+(defun make-server ()
+  (make-instance 'server))

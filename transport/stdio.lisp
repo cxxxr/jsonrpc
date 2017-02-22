@@ -23,6 +23,9 @@
                     (make-two-way-stream (stdio-transport-input transport)
                                          (stdio-transport-output transport)))))
 
+(defmethod start-client ((transport stdio-transport))
+  (loop))
+
 (defmethod send-message-using-transport ((transport stdio-transport) stream message)
   (let ((json (with-output-to-string (s)
                 (yason:encode message s))))
