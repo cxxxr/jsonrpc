@@ -33,6 +33,7 @@
    #:server-listen
    #:client-connect
    #:register-method
+   #:clear-methods
 
    ;; from errors
    #:jsonrpc-error

@@ -19,13 +19,14 @@
            #:server
            #:jsonrpc-transport
            #:register-method
+           #:clear-methods
            #:server-listen
            #:client-connect))
 (in-package #:jsonrpc/class)
 
 (defclass jsonrpc ()
   ((mapper :initform (make-mapper)
-           :reader jsonrpc-mapper)
+           :accessor jsonrpc-mapper)
    (transport :type (or null transport)
               :initarg :transport
               :initform nil
@@ -39,6 +40,10 @@
   (:method ((object jsonrpc) method-name function)
     (register-method-to-mapper (jsonrpc-mapper object)
                                method-name function)))
+
+(defun clear-methods (object)
+  (setf (jsonrpc-mapper object) (make-mapper))
+  object)
 
 (defgeneric server-listen (server &rest initargs &key mode &allow-other-keys)
   (:method ((server server) &rest initargs &key (mode :tcp) &allow-other-keys)
