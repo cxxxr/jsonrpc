@@ -5,6 +5,7 @@
   (:import-from #:jsonrpc/request-response
                 #:request-id
                 #:make-error-response)
+  (:import-from #:dissect)
   (:export #:*connection*
            #:transport
            #:transport-message-callback
@@ -41,7 +42,12 @@
                    (mapcar (lambda (message)
                              (process-message transport message))
                            message))
-        (handler-case (funcall (transport-message-callback transport) message)
+        (handler-case
+            (handler-bind ((error
+                             (lambda (e)
+                               (unless (typep e 'jsonrpc-error)
+                                 (dissect:present e)))))
+              (funcall (transport-message-callback transport) message))
           (jsonrpc-error (e)
             (make-error-response
              :id (request-id message)
