@@ -60,7 +60,7 @@
                                     ;; Nothing can be done
                                     nil))))
                    (when message
-                     (handle-request-message transport ws message)))))
+                     (handle-message transport ws message)))))
        (when (slot-value transport 'connect-cb)
          (wsd:on :open ws
                  (lambda ()

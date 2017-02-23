@@ -19,10 +19,11 @@
            :accessor stdio-transport-output)))
 
 (defmethod start-server ((transport stdio-transport))
-  (loop
-    (handle-request transport
-                    (make-two-way-stream (stdio-transport-input transport)
-                                         (stdio-transport-output transport)))))
+  (let ((stream (make-two-way-stream (stdio-transport-input transport)
+                                     (stdio-transport-output transport))))
+    (loop for message = (receive-message transport stream)
+          while message
+          do (handle-message transport stream message))))
 
 (defmethod start-client ((transport stdio-transport))
   (loop))

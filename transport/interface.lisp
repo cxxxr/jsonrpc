@@ -3,6 +3,8 @@
   (:use #:cl
         #:jsonrpc/errors)
   (:import-from #:jsonrpc/request-response
+                #:request
+                #:response
                 #:request-id
                 #:make-error-response)
   (:import-from #:dissect)
@@ -12,8 +14,7 @@
            #:transport-connection
            #:start-server
            #:start-client
-           #:handle-request-message
-           #:handle-request
+           #:handle-message
            #:process-message
            #:send-message
            #:receive-message
@@ -27,7 +28,9 @@
 (defclass transport ()
   ((message-callback :initarg :message-callback
                      :accessor transport-message-callback)
-   (connection :accessor transport-connection)))
+   (connection :accessor transport-connection)
+   (wait-map :initform (make-hash-table :test 'equal)
+             :reader transport-wait-map)))
 
 (defgeneric start-server (transport))
 
@@ -36,31 +39,33 @@
     transport))
 
 (defgeneric process-message (transport message)
-  (:method (transport message)
-    (if (listp message)
-        (remove-if #'null
-                   (mapcar (lambda (message)
-                             (process-message transport message))
-                           message))
-        (handler-case
-            (handler-bind ((error
-                             (lambda (e)
-                               (unless (typep e 'jsonrpc-error)
-                                 (dissect:present e)))))
-              (funcall (transport-message-callback transport) message))
-          (jsonrpc-error (e)
-            (make-error-response
-             :id (request-id message)
-             :code (jsonrpc-error-code e)
-             :message (jsonrpc-error-message e)))
-          (error ()
-            (let ((e (make-condition 'jsonrpc-internal-error)))
-              (make-error-response
-               :id (request-id message)
-               :code (jsonrpc-error-code e)
-               :message (jsonrpc-error-message e))))))))
+  (:method (transport (message list))
+    (remove-if #'null
+               (mapcar (lambda (message)
+                         (process-message transport message))
+                       message)))
+  (:method (transport (message request))
+    (handler-case
+        (handler-bind ((error
+                         (lambda (e)
+                           (unless (typep e 'jsonrpc-error)
+                             (dissect:present e)))))
+          (funcall (transport-message-callback transport) message))
+      (jsonrpc-error (e)
+        (make-error-response
+         :id (request-id message)
+         :code (jsonrpc-error-code e)
+         :message (jsonrpc-error-message e)))
+      (error ()
+        (let ((e (make-condition 'jsonrpc-internal-error)))
+          (make-error-response
+           :id (request-id message)
+           :code (jsonrpc-error-code e)
+           :message (jsonrpc-error-message e))))))
+  (:method (transport (message response))
+    (warn "Unexpected response message has been received. Ignored.~%~S" message)))
 
-(defgeneric handle-request-message (transport connection message)
+(defgeneric handle-message (transport connection message)
   (:method (transport connection message)
     (let ((response (process-message transport message)))
       (when response
@@ -70,11 +75,6 @@
     (let ((*transport* transport)
           (*connection* connection))
       (call-next-method))))
-
-(defun handle-request (transport connection)
-  (let ((message (receive-message transport connection)))
-    (when message
-      (handle-request-message transport connection message))))
 
 (defgeneric send-message (transport to message))
 

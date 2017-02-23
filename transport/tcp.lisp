@@ -65,7 +65,9 @@
              (dolist (socket clients)
                (when (member (usocket:socket-state socket) '(:read :read-write))
                  (handler-case
-                     (handle-request transport socket)
+                     (let ((message (receive-message transport socket)))
+                       (when message
+                         (handle-message transport socket message)))
                    (eof ()
                      (usocket:socket-close socket)
                      (setf clients (delete socket clients)))))))
