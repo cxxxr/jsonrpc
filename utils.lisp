@@ -39,7 +39,7 @@
                               mode)))
     (when (asdf:find-system system-name nil)
       #+quicklisp
-      (ql:quickload system-name)
+      (ql:quickload system-name :silent t)
       #-quicklisp
       (asdf:load-system system-name)
       (let ((package (find-package package-name)))
