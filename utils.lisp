@@ -38,10 +38,11 @@
                               :jsonrpc/transport
                               mode)))
     (when (asdf:find-system system-name nil)
-      #+quicklisp
-      (ql:quickload system-name :silent t)
-      #-quicklisp
-      (asdf:load-system system-name)
+      (with-output-to-string (*standard-output*)
+        #+quicklisp
+        (ql:quickload system-name :silent t)
+        #-quicklisp
+        (asdf:load-system system-name :verbose nil))
       (let ((package (find-package package-name)))
         (and package
              (find-class (intern (format nil "~A-~A" mode :transport) package)))))))
