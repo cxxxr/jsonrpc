@@ -19,7 +19,8 @@
            #:send-message
            #:receive-message
            #:send-message
-           #:receive-message))
+           #:receive-message
+           #:push-notification))
 (in-package #:jsonrpc/transport/interface)
 
 (defvar *transport*)
@@ -78,4 +79,16 @@
 
 (defgeneric send-message (transport to message))
 
+(defvar *notification-queue* '())
+
+(defun push-notification (message)
+  (push message *notification-queue*))
+
 (defgeneric receive-message (transport from))
+
+(defmethod receive-message :before (transport form)
+  (dolist (message (nreverse *notification-queue*))
+    (send-message transport
+                  (transport-connection transport)
+                  message))
+  (setf *notification-queue* nil))
