@@ -21,6 +21,7 @@
 (defmethod start-server ((transport stdio-transport))
   (let ((stream (make-two-way-stream (stdio-transport-input transport)
                                      (stdio-transport-output transport))))
+    (setf (transport-connection trasnport) stream)
     (loop for message = (receive-message transport stream)
           while message
           do (handle-message transport stream message))))
