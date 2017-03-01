@@ -33,8 +33,10 @@
    #:register-method
    #:clear-methods
    #:call-to
+   #:call-async-to
    #:notify-to
    #:call
+   #:call-async
    #:notify
 
    ;; from errors

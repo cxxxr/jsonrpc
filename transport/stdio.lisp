@@ -36,7 +36,10 @@
      (lambda ()
        (loop for message = (receive-message-using-transport transport stream)
              while message
-             do (handle-message transport stream message))))))
+             do (handle-message transport stream message)))
+     :initial-bindings
+     `((*standard-output* . ,*standard-output*)
+       (*error-output* . ,*error-output*)))))
 
 (defmethod send-message-using-transport ((transport stdio-transport) stream message)
   (let ((json (with-output-to-string (s)

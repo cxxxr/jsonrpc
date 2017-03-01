@@ -91,7 +91,10 @@
      (lambda ()
        (loop for message = (receive-message-using-transport transport stream)
              while message
-             do (handle-message transport stream message)))))
+             do (handle-message transport stream message)))
+     :initial-bindings
+     `((*standard-output* . ,*standard-output*)
+       (*error-output* . ,*error-output*))))
   transport)
 
 (defmethod send-message-using-transport ((transport tcp-transport) stream message)

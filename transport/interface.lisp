@@ -14,7 +14,7 @@
            #:transport
            #:transport-message-callback
            #:transport-connection
-           #:wait-for-response
+           #:set-callback-for-id
            #:start-server
            #:start-client
            #:handle-message
@@ -33,29 +33,35 @@
    ;; Inbox
    (inbox :initform (make-hash-table :test 'equal)
           :reader transport-inbox)
-   (condvar :initform (bt:make-condition-variable))
+   (inbox-callback :initform (make-hash-table :test 'equal)
+                   :reader transport-inbox-callback)
    (inbox-lock :initform (bt:make-lock))))
 
 (defun push-response (transport message)
   (check-type message response)
-  (with-slots (inbox-lock condvar) transport
-    (bt:with-lock-held (inbox-lock)
-      (setf (gethash (response-id message) (transport-inbox transport))
-            message))
-    (bt:condition-notify condvar)))
+  (let ((id (response-id message)))
+    (with-slots (inbox inbox-callback inbox-lock) transport
+      (bt:with-lock-held (inbox-lock)
+        (let ((callback (gethash id inbox-callback)))
+          (if callback
+              (progn
+                (funcall callback message)
+                (remhash id inbox-callback))
+              (setf (gethash id inbox) message))))))
+  (values))
 
-(defun wait-for-response (transport id)
-  (flet ((find-response ()
-           (gethash id (transport-inbox transport))))
-    (or (find-response)
-        (loop
-          (with-slots (condvar inbox-lock) transport
-            (bt:with-lock-held (inbox-lock)
-              (bt:condition-wait condvar inbox-lock)
-              (let ((response (find-response)))
-                (when response
-                  (remhash id (transport-inbox transport))
-                  (return response)))))))))
+(defun set-callback-for-id (transport id callback)
+  (with-slots (inbox inbox-callback inbox-lock) transport
+    (bt:with-lock-held (inbox-lock)
+      (let ((response (gethash id inbox)))
+        (if response
+            ;; The response is ready
+            (progn
+              (funcall callback response)
+              (remhash id inbox))
+            (setf (gethash id inbox-callback)
+                  callback)))))
+  (values))
 
 (defgeneric start-server (transport))
 

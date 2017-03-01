@@ -9,7 +9,7 @@ JSON-RPC 2.0 server/client for Common Lisp.
 ```common-lisp
 ;; server
 (defvar *server* (jsonrpc:make-server))
-(jsonrpc:expose *server* "sum" (lambda (arg) (reduce #'+ args)))
+(jsonrpc:expose *server* "sum" (lambda (args) (reduce #'+ args)))
 
 (jsonrpc:server-listen *server* :port 50879 :mode :tcp)
 ```
