@@ -28,6 +28,7 @@
    #:*connection*
    #:send-message
    #:receive-message
+   #:push-notification
 
    ;; from class
    #:server-listen
