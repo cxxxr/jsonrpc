@@ -32,6 +32,7 @@
    ;; from class
    #:server-listen
    #:client-connect
+   #:expose
    #:register-method
    #:clear-methods
 

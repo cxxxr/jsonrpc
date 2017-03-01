@@ -18,6 +18,7 @@
   (:export #:client
            #:server
            #:jsonrpc-transport
+           #:expose
            #:register-method
            #:clear-methods
            #:server-listen
@@ -38,10 +39,11 @@
 
 (defclass server (jsonrpc) ())
 
-(defgeneric register-method (object method-name function)
+(defgeneric expose (object method-name function)
   (:method ((object jsonrpc) method-name function)
     (register-method-to-mapper (jsonrpc-mapper object)
                                method-name function)))
+(setf (fdefinition 'register-method) #'expose)
 
 (defun clear-methods (object)
   (setf (jsonrpc-mapper object) (make-mapper))

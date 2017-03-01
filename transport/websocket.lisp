@@ -47,30 +47,30 @@
   transport)
 
 (defmethod start-server ((transport websocket-transport))
-  (clack:clackup
-   (lambda (env)
-     (let ((ws (wsd:make-server env)))
-       (wsd:on :message ws
-               (lambda (input)
-                 (let ((message (handler-case (parse-message input)
-                                  (jsonrpc-error ()
-                                    ;; Nothing can be done
-                                    nil))))
-                   (when message
-                     (handle-message transport ws message)))))
-       (when (slot-value transport 'connect-cb)
-         (wsd:on :open ws
-                 (lambda ()
-                   (funcall (slot-value transport 'connect-cb) ws))))
-       (setf (transport-connection transport) ws)
-       (lambda (responder)
-         (declare (ignore responder))
-         (wsd:start-connection ws))))
-   :host (websocket-transport-host transport)
-   :port (websocket-transport-port transport)
-   :server (websocket-transport-server transport)
-   :debug (slot-value transport 'debug)
-   :use-thread nil))
+  (setf (transport-connection transport)
+        (clack:clackup
+         (lambda (env)
+           (let ((ws (wsd:make-server env)))
+             (wsd:on :message ws
+                     (lambda (input)
+                       (let ((message (handler-case (parse-message input)
+                                        (jsonrpc-error ()
+                                          ;; Nothing can be done
+                                          nil))))
+                         (when message
+                           (handle-message transport ws message)))))
+             (when (slot-value transport 'connect-cb)
+               (wsd:on :open ws
+                       (lambda ()
+                         (funcall (slot-value transport 'connect-cb) ws))))
+             (lambda (responder)
+               (declare (ignore responder))
+               (wsd:start-connection ws))))
+         :host (websocket-transport-host transport)
+         :port (websocket-transport-port transport)
+         :server (websocket-transport-server transport)
+         :debug (slot-value transport 'debug)
+         :use-thread nil)))
 
 (defmethod start-client ((transport websocket-transport))
   (let ((client (wsd:make-client (format nil "~A://~A:~A/"
