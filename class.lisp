@@ -107,6 +107,7 @@
   (check-type params jsonrpc-params)
   (let ((id (make-id)))
     (set-callback-for-id (jsonrpc-transport from)
+                         to
                          id
                          (lambda (response)
                            (when (response-error response)
