@@ -152,11 +152,7 @@
 (defgeneric call (jsonrpc method &optional params)
   (:method ((client client) method &optional params)
     (call-to client (transport-connection (jsonrpc-transport client))
-             method params))
-  (:method ((server server) method &optional params)
-    (unless (boundp '*connection*)
-      (error "`call' is called outside of handlers."))
-    (call-to server *connection* method params)))
+             method params)))
 
 (defgeneric call-async (jsonrpc method &optional params callback)
   (:method ((client client) method &optional params callback)
