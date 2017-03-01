@@ -101,7 +101,7 @@
 (defmethod receive-message (from connection)
   (receive-message-using-transport (jsonrpc-transport from) connection))
 
-(deftype jsonrpc-params () '(or list hash-table structure-object standard-object))
+(deftype jsonrpc-params () '(or list array hash-table structure-object standard-object))
 
 (defun call-async-to (from to method &optional params (callback #'identity))
   (check-type params jsonrpc-params)
