@@ -28,9 +28,7 @@
 (defclass transport ()
   ((message-callback :initarg :message-callback
                      :accessor transport-message-callback)
-   (connection :accessor transport-connection)
-   (wait-map :initform (make-hash-table :test 'equal)
-             :reader transport-wait-map)))
+   (connection :accessor transport-connection)))
 
 (defgeneric start-server (transport))
 
