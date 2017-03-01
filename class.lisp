@@ -6,13 +6,22 @@
                 #:to-app
                 #:register-method-to-mapper)
   (:import-from #:jsonrpc/transport/interface
+                #:*connection*
                 #:transport
+                #:wait-for-response
                 #:start-server
                 #:start-client
                 #:send-message-using-transport
                 #:receive-message-using-transport)
+  (:import-from #:jsonrpc/request-response
+                #:response-id
+                #:response-error
+                #:response-error-code
+                #:response-error-message
+                #:response-result)
   (:import-from #:jsonrpc/utils
-                #:find-mode-class)
+                #:find-mode-class
+                #:make-id)
   (:import-from #:alexandria
                 #:remove-from-plist)
   (:export #:client
@@ -24,7 +33,11 @@
            #:server-listen
            #:client-connect
            #:send-message
-           #:receive-message))
+           #:receive-message
+           #:call-to
+           #:notify-to
+           #:call
+           #:notify))
 (in-package #:jsonrpc/class)
 
 (defclass jsonrpc ()
@@ -83,3 +96,48 @@
 
 (defmethod receive-message (from connection)
   (receive-message-using-transport (jsonrpc-transport from) connection))
+
+(deftype jsonrpc-params () '(or list hash-table structure-object standard-object))
+
+(defun call-to (from to method &optional params)
+  (check-type params jsonrpc-params)
+  (let ((id (make-id)))
+    (send-message from
+                  to
+                  (make-request :id id
+                                :method method
+                                :params params))
+    (let ((response (wait-for-response (jsonrpc-transport from) id)))
+      (when (response-error response)
+        (error "JSON-RPC response error: ~A (Code: ~A)"
+               (response-error-message response)
+               (response-error-code response)))
+      (unless (equal (response-id response) id)
+        (error "Unmatched response id"))
+      (response-result response))))
+
+(defun notify-to (from to method &optional params)
+  (check-type params jsonrpc-params)
+  (send-message from
+                to
+                (make-request :method method
+                              :params params)))
+
+(defgeneric call (client method &optional params)
+  (:method ((client client) method &optional params)
+    (call-to client (transport-connection (jsonrpc-transport client))
+             method params))
+  (:method ((server server) method &optional params)
+    (unless (boundp '*connection*)
+      (error "`call' is called outside of handlers."))
+    (call-to server *connection* method params)))
+
+(defgeneric notify (client method &optional params)
+  (:method ((client client) method &optional params)
+    (notify-to client (transport-connection (jsonrpc-transport client))
+               method params))
+  (:method ((server server) method &optional params)
+    (unless (boundp '*connection*)
+      (error "`notify' is called outside of handlers."))
+    (notify-to client *connection*
+               method params)))

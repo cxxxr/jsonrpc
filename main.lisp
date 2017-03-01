@@ -5,10 +5,7 @@
         #:jsonrpc/request-response
         #:jsonrpc/transport/interface
         #:jsonrpc/class
-        #:jsonrpc/errors
-        #:jsonrpc/class)
-  (:import-from #:jsonrpc/utils
-                #:make-id)
+        #:jsonrpc/errors)
   (:export
    ;; from request-response
    #:request
@@ -35,6 +32,10 @@
    #:expose
    #:register-method
    #:clear-methods
+   #:call-to
+   #:notify-to
+   #:call
+   #:notify
 
    ;; from errors
    #:jsonrpc-error
@@ -49,37 +50,9 @@
    #:jsonrpc-error-message
 
    ;; from this package
-   #:call
-   #:notify
    #:make-server
    #:make-client))
 (in-package #:jsonrpc)
-
-(defun call (jsonrpc method &optional params)
-  (check-type params (or list hash-table structure-object standard-object))
-  (let ((id (make-id)))
-    (send-message jsonrpc
-                  (etypecase jsonrpc
-                    (server *connection*)
-                    (client
-                     (transport-connection (jsonrpc-transport jsonrpc))))
-                  (make-request :id id
-                                :method method
-                                :params params))
-    (let ((response (wait-for-response (jsonrpc-transport jsonrpc) id)))
-      (when (response-error response)
-        (error "JSON-RPC response error: ~A (Code: ~A)"
-               (response-error-message response)
-               (response-error-code response)))
-      (unless (equal (response-id response) id)
-        (error "Unmatched response id"))
-      (response-result response))))
-
-(defun notify (jsonrpc method &optional params)
-  (send-message jsonrpc
-                *connection*
-                (make-request :method method
-                              :params params)))
 
 (defun make-client ()
   (make-instance 'client))
