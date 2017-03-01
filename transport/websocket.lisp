@@ -23,7 +23,8 @@
          :initarg :port
          :initform (random-port))
    (securep :accessor websocket-transport-secure-p
-            :initarg :securep)
+            :initarg :securep
+            :initform nil)
    (server :accessor websocket-transport-server
            :initarg :server
            :initform :hunchentoot)
@@ -31,11 +32,7 @@
           :initform t)
    (connect-cb :initarg :connect-cb
                :type (or null function)
-               :initform nil)
-   (client-queue :initform (make-array 0 :adjustable t :fill-pointer 0)
-                 :accessor client-queue)
-   (client-queue-lock :initform (bt:make-lock)
-                      :accessor client-queue-lock)))
+               :initform nil)))
 
 (defmethod initialize-instance :after ((transport websocket-transport) &rest initargs &key url &allow-other-keys)
   (declare (ignore initargs))
@@ -87,19 +84,15 @@
     (when (slot-value transport 'connect-cb)
       (funcall (slot-value transport 'connect-cb) client))
     (wsd:on :message client
-            (lambda (message)
-              (bt:with-lock-held ((client-queue-lock transport))
-                (vector-push-extend message (client-queue transport)))))
+            (lambda (body)
+              (let ((message (parse-message body)))
+                (handle-message transport client message))))
     transport))
 
-(defmethod send-message ((transport websocket-transport) ws message)
+(defmethod send-message-using-transport ((transport websocket-transport) ws message)
   (let ((json (with-output-to-string (s)
                 (yason:encode message s))))
     (wsd:send ws json)))
 
-(defmethod receive-message ((transport websocket-transport) connection)
-  (loop while (= (length (client-queue transport)) 0)
-        do (sleep 0.1))
-  (parse-message
-   (bt:with-lock-held ((client-queue-lock transport))
-     (vector-pop (client-queue transport)))))
+(defmethod receive-message-using-transport ((transport websocket-transport) connection)
+  (error "Not allowed to receive synchronously with WebSocket transport."))

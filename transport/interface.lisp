@@ -6,29 +6,56 @@
                 #:request
                 #:response
                 #:request-id
+                #:response-id
                 #:make-error-response)
+  (:import-from #:bordeaux-threads)
   (:import-from #:dissect)
   (:export #:*connection*
            #:transport
            #:transport-message-callback
            #:transport-connection
+           #:wait-for-response
            #:start-server
            #:start-client
            #:handle-message
            #:process-message
-           #:send-message
-           #:receive-message
-           #:send-message
-           #:receive-message))
+           #:send-message-using-transport
+           #:receive-message-using-transport))
 (in-package #:jsonrpc/transport/interface)
 
-(defvar *transport*)
 (defvar *connection*)
 
 (defclass transport ()
   ((message-callback :initarg :message-callback
                      :accessor transport-message-callback)
-   (connection :accessor transport-connection)))
+   (connection :accessor transport-connection)
+
+   ;; Inbox
+   (inbox :initform (make-hash-table :test 'equal)
+          :reader transport-inbox)
+   (condvar :initform (bt:make-condition-variable))
+   (inbox-lock :initform (bt:make-lock))))
+
+(defun push-response (transport message)
+  (check-type message response)
+  (with-slots (inbox-lock condvar) transport
+    (bt:with-lock-held (inbox-lock)
+      (setf (gethash (response-id message) (transport-inbox transport))
+            message))
+    (bt:condition-notify condvar)))
+
+(defun wait-for-response (transport id)
+  (flet ((find-response ()
+           (gethash id (transport-inbox transport))))
+    (or (find-response)
+        (loop
+          (with-slots (condvar inbox-lock) transport
+            (bt:with-lock-held (inbox-lock)
+              (bt:condition-wait condvar inbox-lock)
+              (let ((response (find-response)))
+                (when response
+                  (remhash id (transport-inbox transport))
+                  (return response)))))))))
 
 (defgeneric start-server (transport))
 
@@ -61,19 +88,18 @@
            :code (jsonrpc-error-code e)
            :message (jsonrpc-error-message e))))))
   (:method (transport (message response))
-    (warn "Unexpected response message has been received. Ignored.~%~S" message)))
+    (push-response transport message)))
 
 (defgeneric handle-message (transport connection message)
   (:method (transport connection message)
     (let ((response (process-message transport message)))
       (when response
-        (send-message transport connection response))))
+        (send-message-using-transport transport connection response))))
   (:method :around (transport connection message)
     (declare (ignore message))
-    (let ((*transport* transport)
-          (*connection* connection))
+    (let ((*connection* connection))
       (call-next-method))))
 
-(defgeneric send-message (transport to message))
+(defgeneric send-message-using-transport (transport to message))
 
-(defgeneric receive-message (transport from))
+(defgeneric receive-message-using-transport (transport from))

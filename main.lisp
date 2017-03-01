@@ -58,11 +58,14 @@
   (check-type params (or list hash-table structure-object standard-object))
   (let ((id (make-id)))
     (send-message jsonrpc
-                  *connection*
+                  (etypecase jsonrpc
+                    (server *connection*)
+                    (client
+                     (transport-connection (jsonrpc-transport jsonrpc))))
                   (make-request :id id
                                 :method method
                                 :params params))
-    (let ((response (receive-message jsonrpc *connection*)))
+    (let ((response (wait-for-response (jsonrpc-transport jsonrpc) id)))
       (when (response-error response)
         (error "JSON-RPC response error: ~A (Code: ~A)"
                (response-error-message response)

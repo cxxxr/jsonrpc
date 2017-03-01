@@ -9,8 +9,8 @@
                 #:transport
                 #:start-server
                 #:start-client
-                #:send-message
-                #:receive-message)
+                #:send-message-using-transport
+                #:receive-message-using-transport)
   (:import-from #:jsonrpc/utils
                 #:find-mode-class)
   (:import-from #:alexandria
@@ -21,7 +21,9 @@
            #:register-method
            #:clear-methods
            #:server-listen
-           #:client-connect))
+           #:client-connect
+           #:send-message
+           #:receive-message))
 (in-package #:jsonrpc/class)
 
 (defclass jsonrpc ()
@@ -73,8 +75,9 @@
         (start-client transport)))
     client))
 
-(defmethod send-message ((to jsonrpc) connection message)
-  (send-message (jsonrpc-transport to) connection message))
+(defgeneric send-message (to connection message)
+  (:method (to connection message)
+    (send-message-using-transport (jsonrpc-transport to) connection message)))
 
-(defmethod receive-message ((from jsonrpc) connection)
-  (receive-message (jsonrpc-transport from) connection))
+(defmethod receive-message (from connection)
+  (receive-message-using-transport (jsonrpc-transport from) connection))

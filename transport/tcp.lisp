@@ -12,6 +12,8 @@
   (:import-from #:cl+ssl)
   (:import-from #:quri)
   (:import-from #:yason)
+  (:import-from #:bordeaux-threads
+                #:make-thread)
   (:import-from #:fast-io
                 #:make-output-buffer
                 #:finish-output-buffer
@@ -65,9 +67,9 @@
              (dolist (socket clients)
                (when (member (usocket:socket-state socket) '(:read :read-write))
                  (handler-case
-                     (let ((message (receive-message transport socket)))
+                     (let ((message (receive-message-using-transport transport (usocket:socket-stream socket))))
                        (when message
-                         (handle-message transport socket message)))
+                         (handle-message transport (usocket:socket-stream socket) message)))
                    (eof ()
                      (usocket:socket-close socket)
                      (setf clients (delete socket clients)))))))
@@ -78,14 +80,21 @@
                  (usocket:socket-connect (tcp-transport-host transport)
                                          (tcp-transport-port transport)
                                          :element-type '(unsigned-byte 8)))))
-    (setf (transport-connection transport)
+    (setf stream
           (if (tcp-transport-secure-p transport)
               (cl+ssl:make-ssl-client-stream stream
                                              :hostname (tcp-transport-host transport))
-              stream)))
+              stream))
+    (setf (transport-connection transport) stream)
+
+    (bt:make-thread
+     (lambda ()
+       (loop for message = (receive-message-using-transport transport stream)
+             while message
+             do (handle-message transport stream message)))))
   transport)
 
-(defmethod send-message ((transport tcp-transport) stream message)
+(defmethod send-message-using-transport ((transport tcp-transport) stream message)
   (let ((json (with-output-to-string (s)
                 (yason:encode message s))))
     (write-sequence
@@ -99,7 +108,7 @@
      stream)
     (force-output stream)))
 
-(defmethod receive-message ((transport tcp-transport) stream)
+(defmethod receive-message-using-transport ((transport tcp-transport) stream)
   (let* ((headers (read-headers stream))
          (length (ignore-errors (parse-integer (gethash "content-length" headers)))))
     (when length

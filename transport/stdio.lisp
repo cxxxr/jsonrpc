@@ -3,6 +3,8 @@
   (:use #:cl
         #:jsonrpc/transport/interface)
   (:import-from #:yason)
+  (:import-from #:bordeaux-threads
+                #:make-thread)
   (:import-from #:jsonrpc/request-response
                 #:parse-message)
   (:export #:stdio-transport))
@@ -22,14 +24,21 @@
   (let ((stream (make-two-way-stream (stdio-transport-input transport)
                                      (stdio-transport-output transport))))
     (setf (transport-connection transport) stream)
-    (loop for message = (receive-message transport stream)
+    (loop for message = (receive-message-using-transport transport stream)
           while message
           do (handle-message transport stream message))))
 
 (defmethod start-client ((transport stdio-transport))
-  (loop))
+  (let ((stream (make-two-way-stream (stdio-transport-input transport)
+                                     (stdio-transport-output transport))))
+    (setf (transport-connection transport) stream)
+    (bt:make-thread
+     (lambda ()
+       (loop for message = (receive-message-using-transport transport stream)
+             while message
+             do (handle-message transport stream message))))))
 
-(defmethod send-message ((transport stdio-transport) stream message)
+(defmethod send-message-using-transport ((transport stdio-transport) stream message)
   (let ((json (with-output-to-string (s)
                 (yason:encode message s))))
     (format stream "Content-Length: ~A~C~C~:*~:*~C~C~A"
@@ -39,7 +48,7 @@
             json)
     (force-output stream)))
 
-(defmethod receive-message ((transport stdio-transport) stream)
+(defmethod receive-message-using-transport ((transport stdio-transport) stream)
   (let* ((headers (read-headers stream))
          (length (ignore-errors (parse-integer (gethash "content-length" headers)))))
     (when length
