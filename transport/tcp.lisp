@@ -37,7 +37,8 @@
          :initarg :port
          :initform (random-port))
    (securep :accessor tcp-transport-secure-p
-            :initarg :securep)))
+            :initarg :securep
+            :initform nil)))
 
 (defmethod initialize-instance :after ((transport tcp-transport) &rest initargs &key url &allow-other-keys)
   (declare (ignore initargs))
