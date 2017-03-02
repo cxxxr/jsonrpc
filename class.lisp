@@ -27,6 +27,9 @@
                 #:make-id)
   (:import-from #:bordeaux-threads
                 #:*default-special-bindings*)
+  (:import-from #:event-emitter
+                #:on
+                #:emit)
   (:import-from #:alexandria
                 #:remove-from-plist)
   (:export #:client
@@ -82,6 +85,11 @@
                               (to-app (jsonrpc-mapper server))
                               initargs)))
         (setf (jsonrpc-transport server) transport)
+
+        (on :connect transport
+            (lambda (connection)
+              (emit :connect server connection)))
+
         (start-server transport)))
     server))
 
@@ -98,6 +106,11 @@
                               (to-app (jsonrpc-mapper client))
                               initargs)))
         (setf (jsonrpc-transport client) transport)
+
+        (on :connect transport
+            (lambda (connection)
+              (emit :connect client connection)))
+
         (start-client transport)))
     client))
 

@@ -14,6 +14,9 @@
   (:import-from #:bordeaux-threads
                 #:make-thread
                 #:destroy-thread)
+  (:import-from #:event-emitter
+                #:on
+                #:emit)
   (:import-from #:yason)
   (:import-from #:quri)
   (:import-from #:websocket-driver)
@@ -32,10 +35,7 @@
             :initarg :securep
             :initform nil)
    (debug :initarg :debug
-          :initform t)
-   (connect-cb :initarg :connect-cb
-               :type (or null function)
-               :initform nil)))
+          :initform t)))
 
 (defmethod initialize-instance :after ((transport websocket-transport) &rest initargs &key url &allow-other-keys)
   (declare (ignore initargs))
@@ -59,19 +59,18 @@
                                              :request-callback
                                              (transport-message-callback transport))))
 
-             (wsd:on :message ws
-                     (lambda (input)
-                       (let ((message (handler-case (parse-message input)
-                                        (jsonrpc-error ()
-                                          ;; Nothing can be done
-                                          nil))))
-                         (when message
-                           (add-message-to-queue connection message)))))
+             (on :message ws
+                 (lambda (input)
+                   (let ((message (handler-case (parse-message input)
+                                    (jsonrpc-error ()
+                                      ;; Nothing can be done
+                                      nil))))
+                     (when message
+                       (add-message-to-queue connection message)))))
 
-             (when (slot-value transport 'connect-cb)
-               (wsd:on :open ws
-                       (lambda ()
-                         (funcall (slot-value transport 'connect-cb) connection))))
+             (on :open ws
+                 (lambda ()
+                   (emit :connect transport connection)))
              (lambda (responder)
                (declare (ignore responder))
                (let ((thread
@@ -101,13 +100,14 @@
                                     (transport-message-callback transport))))
     (wsd:start-connection client)
     (setf (transport-connection transport) connection)
-    (when (slot-value transport 'connect-cb)
-      (funcall (slot-value transport 'connect-cb) client))
-    (wsd:on :message client
-            (lambda (input)
-              (let ((message (parse-message input)))
-                (when message
-                  (add-message-to-queue connection message)))))
+
+    (emit :connect transport connection)
+
+    (on :message client
+        (lambda (input)
+          (let ((message (parse-message input)))
+            (when message
+              (add-message-to-queue connection message)))))
     (bt:make-thread
      (lambda ()
        (run-processing-loop transport connection))

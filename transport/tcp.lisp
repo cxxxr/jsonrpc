@@ -19,6 +19,8 @@
                 #:make-output-buffer
                 #:finish-output-buffer
                 #:fast-write-byte)
+  (:import-from #:event-emitter
+                #:emit)
   (:import-from #:trivial-utf-8
                 #:utf-8-bytes-to-string
                 #:string-to-utf-8-bytes)
@@ -65,6 +67,7 @@
                       (connection (make-instance 'connection
                                                  :socket (usocket:socket-stream socket)
                                                  :request-callback callback)))
+                 (emit :connect transport connection)
                  (push
                   (bt:make-thread
                    (lambda ()
@@ -97,6 +100,8 @@
                                      :request-callback
                                      (transport-message-callback transport))))
       (setf (transport-connection transport) connection)
+
+      (emit :connect transport connection)
 
       (bt:make-thread
        (lambda ()
