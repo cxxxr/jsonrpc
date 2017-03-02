@@ -67,7 +67,7 @@
                       (connection (make-instance 'connection
                                                  :socket (usocket:socket-stream socket)
                                                  :request-callback callback)))
-                 (emit :connect transport connection)
+                 (emit :open transport connection)
                  (push
                   (bt:make-thread
                    (lambda ()
@@ -101,7 +101,7 @@
                                      (transport-message-callback transport))))
       (setf (transport-connection transport) connection)
 
-      (emit :connect transport connection)
+      (emit :open transport connection)
 
       (bt:make-thread
        (lambda ()

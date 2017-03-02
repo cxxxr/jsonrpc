@@ -70,7 +70,7 @@
 
              (on :open ws
                  (lambda ()
-                   (emit :connect transport connection)))
+                   (emit :open transport connection)))
              (lambda (responder)
                (declare (ignore responder))
                (let ((thread
@@ -101,7 +101,7 @@
     (wsd:start-connection client)
     (setf (transport-connection transport) connection)
 
-    (emit :connect transport connection)
+    (emit :open transport connection)
 
     (on :message client
         (lambda (input)

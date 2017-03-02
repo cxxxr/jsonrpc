@@ -86,9 +86,9 @@
                               initargs)))
         (setf (jsonrpc-transport server) transport)
 
-        (on :connect transport
+        (on :open transport
             (lambda (connection)
-              (emit :connect server connection)))
+              (emit :open server connection)))
 
         (start-server transport)))
     server))
@@ -107,9 +107,9 @@
                               initargs)))
         (setf (jsonrpc-transport client) transport)
 
-        (on :connect transport
+        (on :open transport
             (lambda (connection)
-              (emit :connect client connection)))
+              (emit :open client connection)))
 
         (start-client transport)))
     client))
