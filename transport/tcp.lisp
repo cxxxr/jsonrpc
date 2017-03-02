@@ -79,7 +79,8 @@
                        (unwind-protect
                             (run-reading-loop transport connection)
                          (finish-output (connection-socket connection))
-                         (bt:destroy-thread thread))))
+                         (bt:destroy-thread thread)
+                         (emit :close connection))))
                    :name "jsonrpc/transport/tcp reading")
                   client-threads))))
         (mapc #'bt:destroy-thread client-threads)))))

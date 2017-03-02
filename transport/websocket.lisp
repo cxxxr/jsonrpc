@@ -71,6 +71,11 @@
              (on :open ws
                  (lambda ()
                    (emit :open transport connection)))
+
+             (on :close ws
+                 (lambda ()
+                   (emit :close connection)))
+
              (lambda (responder)
                (declare (ignore responder))
                (let ((thread
@@ -98,16 +103,19 @@
                                     :socket client
                                     :request-callback
                                     (transport-message-callback transport))))
-    (wsd:start-connection client)
-    (setf (transport-connection transport) connection)
-
-    (emit :open transport connection)
+    (on :open client
+        (lambda ()
+          (emit :open transport connection)))
 
     (on :message client
         (lambda (input)
           (let ((message (parse-message input)))
             (when message
               (add-message-to-queue connection message)))))
+
+    (wsd:start-connection client)
+    (setf (transport-connection transport) connection)
+
     (bt:make-thread
      (lambda ()
        (run-processing-loop transport connection))
