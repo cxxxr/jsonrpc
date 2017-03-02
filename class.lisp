@@ -6,14 +6,15 @@
                 #:to-app
                 #:register-method-to-mapper)
   (:import-from #:jsonrpc/transport/interface
-                #:*connection*
                 #:transport
                 #:transport-connection
-                #:set-callback-for-id
                 #:start-server
                 #:start-client
                 #:send-message-using-transport
                 #:receive-message-using-transport)
+  (:import-from #:jsonrpc/connection
+                #:*connection*
+                #:set-callback-for-id)
   (:import-from #:jsonrpc/request-response
                 #:make-request
                 #:response-id
@@ -24,6 +25,8 @@
   (:import-from #:jsonrpc/utils
                 #:find-mode-class
                 #:make-id)
+  (:import-from #:bordeaux-threads
+                #:*default-special-bindings*)
   (:import-from #:alexandria
                 #:remove-from-plist)
   (:export #:client
@@ -69,7 +72,9 @@
 (defgeneric server-listen (server &rest initargs &key mode &allow-other-keys)
   (:method ((server server) &rest initargs &key (mode :tcp) &allow-other-keys)
     (let* ((class (find-mode-class mode))
-           (initargs (remove-from-plist initargs :mode)))
+           (initargs (remove-from-plist initargs :mode))
+           (bt:*default-special-bindings* `((*standard-output* . ,*standard-output*)
+                                            (*error-output* . ,*error-output*)) ))
       (unless class
         (error "Unknown mode ~A" mode))
       (let ((transport (apply #'make-instance class
@@ -83,7 +88,9 @@
 (defgeneric client-connect (client &rest initargs &key mode &allow-other-keys)
   (:method ((client client) &rest initargs &key (mode :tcp) &allow-other-keys)
     (let* ((class (find-mode-class mode))
-           (initargs (remove-from-plist initargs :mode)))
+           (initargs (remove-from-plist initargs :mode))
+           (bt:*default-special-bindings* `((*standard-output* . ,*standard-output*)
+                                            (*error-output* . ,*error-output*)) ))
       (unless class
         (error "Unknown mode ~A" mode))
       (let ((transport (apply #'make-instance class
@@ -98,16 +105,16 @@
   (:method (to connection message)
     (send-message-using-transport (jsonrpc-transport to) connection message)))
 
-(defmethod receive-message (from connection)
-  (receive-message-using-transport (jsonrpc-transport from) connection))
+(defgeneric receive-message (from connection)
+  (:method (from connection)
+    (receive-message-using-transport (jsonrpc-transport from) connection)))
 
 (deftype jsonrpc-params () '(or list array hash-table structure-object standard-object))
 
 (defun call-async-to (from to method &optional params (callback #'identity))
   (check-type params jsonrpc-params)
   (let ((id (make-id)))
-    (set-callback-for-id (jsonrpc-transport from)
-                         to
+    (set-callback-for-id to
                          id
                          (lambda (response)
                            (when (response-error response)

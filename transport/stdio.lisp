@@ -2,9 +2,13 @@
 (defpackage #:jsonrpc/transport/stdio
   (:use #:cl
         #:jsonrpc/transport/interface)
+  (:import-from #:jsonrpc/connection
+                #:connection
+                #:connection-socket)
   (:import-from #:yason)
   (:import-from #:bordeaux-threads
-                #:make-thread)
+                #:make-thread
+                #:destroy-thread)
   (:import-from #:jsonrpc/request-response
                 #:parse-message)
   (:export #:stdio-transport))
@@ -21,29 +25,41 @@
            :accessor stdio-transport-output)))
 
 (defmethod start-server ((transport stdio-transport))
-  (let ((stream (make-two-way-stream (stdio-transport-input transport)
-                                     (stdio-transport-output transport))))
-    (setf (transport-connection transport) stream)
-    (loop for message = (receive-message-using-transport transport stream)
-          while message
-          do (handle-message transport stream message))))
+  (let* ((stream (make-two-way-stream (stdio-transport-input transport)
+                                      (stdio-transport-output transport)))
+         (connection (make-instance 'connection
+                                    :socket stream
+                                    :request-callback (transport-message-callback transport))))
+    (setf (transport-connection transport) connection)
+    (let ((thread
+            (bt:make-thread
+             (lambda ()
+               (run-processing-loop transport connection))
+             :name "jsonrpc/transport/stdio processing")))
+      (unwind-protect (run-reading-loop transport connection)
+        (bt:destroy-thread thread)))))
 
 (defmethod start-client ((transport stdio-transport))
-  (let ((stream (make-two-way-stream (stdio-transport-input transport)
-                                     (stdio-transport-output transport))))
-    (setf (transport-connection transport) stream)
+  (let* ((stream (make-two-way-stream (stdio-transport-input transport)
+                                      (stdio-transport-output transport)))
+         (connection (make-instance 'connection
+                                    :socket stream
+                                    :request-callback (transport-message-callback transport))))
+    (setf (transport-connection transport) connection)
     (bt:make-thread
      (lambda ()
-       (loop for message = (receive-message-using-transport transport stream)
-             while message
-             do (handle-message transport stream message)))
-     :initial-bindings
-     `((*standard-output* . ,*standard-output*)
-       (*error-output* . ,*error-output*)))))
+       (run-processing-loop transport connection))
+     :name "jsonrpc/transport/stdio processing")
+    (bt:make-thread
+     (lambda ()
+       (run-reading-loop transport connection))
+     :name "jsonrpc/transport/stdio reading")
+    connection))
 
-(defmethod send-message-using-transport ((transport stdio-transport) stream message)
+(defmethod send-message-using-transport ((transport stdio-transport) connection message)
   (let ((json (with-output-to-string (s)
-                (yason:encode message s))))
+                (yason:encode message s)))
+        (stream (connection-socket connection)))
     (format stream "Content-Length: ~A~C~C~:*~:*~C~C~A"
             (length json)
             #\Return
@@ -51,8 +67,9 @@
             json)
     (force-output stream)))
 
-(defmethod receive-message-using-transport ((transport stdio-transport) stream)
-  (let* ((headers (read-headers stream))
+(defmethod receive-message-using-transport ((transport stdio-transport) connection)
+  (let* ((stream (connection-socket connection))
+         (headers (read-headers stream))
          (length (ignore-errors (parse-integer (gethash "content-length" headers)))))
     (when length
       (let ((body (make-string length)))

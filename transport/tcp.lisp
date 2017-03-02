@@ -2,18 +2,19 @@
 (defpackage #:jsonrpc/transport/tcp
   (:use #:cl
         #:jsonrpc/utils
-        #:jsonrpc/errors
         #:jsonrpc/transport/interface)
+  (:import-from #:jsonrpc/connection
+                #:connection
+                #:connection-socket)
   (:import-from #:jsonrpc/request-response
-                #:parse-message
-                #:make-error-response
-                #:request-id)
+                #:parse-message)
   (:import-from #:usocket)
   (:import-from #:cl+ssl)
   (:import-from #:quri)
   (:import-from #:yason)
   (:import-from #:bordeaux-threads
-                #:make-thread)
+                #:make-thread
+                #:destroy-thread)
   (:import-from #:fast-io
                 #:make-output-buffer
                 #:finish-output-buffer
@@ -54,26 +55,31 @@
                                         :reuse-address t
                                         :element-type '(unsigned-byte 8))
     (setf (transport-connection transport) server)
-    (let ((clients '()))
+    (let ((callback (transport-message-callback transport))
+          (client-threads '()))
       (unwind-protect
            (loop
-             (setf clients
-                   (delete-if-not #'open-stream-p clients :key #'usocket:socket-stream))
-             (usocket:wait-for-input (cons server clients)
-                                     :timeout 10)
+             (usocket:wait-for-input (list server) :timeout 10)
              (when (member (usocket:socket-state server) '(:read :read-write))
-               (let ((client (usocket:socket-accept server)))
-                 (push client clients)))
-             (dolist (socket clients)
-               (when (member (usocket:socket-state socket) '(:read :read-write))
-                 (handler-case
-                     (let ((message (receive-message-using-transport transport (usocket:socket-stream socket))))
-                       (when message
-                         (handle-message transport (usocket:socket-stream socket) message)))
-                   (eof ()
-                     (usocket:socket-close socket)
-                     (setf clients (delete socket clients)))))))
-        (mapc #'usocket:socket-close clients)))))
+               (let* ((socket (usocket:socket-accept server))
+                      (connection (make-instance 'connection
+                                                 :socket (usocket:socket-stream socket)
+                                                 :request-callback callback)))
+                 (push
+                  (bt:make-thread
+                   (lambda ()
+                     (let ((thread
+                             (bt:make-thread
+                              (lambda ()
+                                (run-processing-loop transport connection))
+                              :name "jsonrpc/transport/tcp processing")))
+                       (unwind-protect
+                            (run-reading-loop transport connection)
+                         (finish-output (connection-socket connection))
+                         (bt:destroy-thread thread))))
+                   :name "jsonrpc/transport/tcp reading")
+                  client-threads))))
+        (mapc #'bt:destroy-thread client-threads)))))
 
 (defmethod start-client ((transport tcp-transport))
   (let ((stream (usocket:socket-stream
@@ -85,21 +91,29 @@
               (cl+ssl:make-ssl-client-stream stream
                                              :hostname (tcp-transport-host transport))
               stream))
-    (setf (transport-connection transport) stream)
 
-    (bt:make-thread
-     (lambda ()
-       (loop for message = (receive-message-using-transport transport stream)
-             while message
-             do (handle-message transport stream message)))
-     :initial-bindings
-     `((*standard-output* . ,*standard-output*)
-       (*error-output* . ,*error-output*))))
-  transport)
+    (let ((connection (make-instance 'connection
+                                     :socket stream
+                                     :request-callback
+                                     (transport-message-callback transport))))
+      (setf (transport-connection transport) connection)
 
-(defmethod send-message-using-transport ((transport tcp-transport) stream message)
+      (bt:make-thread
+       (lambda ()
+         (run-processing-loop transport connection))
+       :name "jsonrpc/transport/tcp processing")
+
+      (bt:make-thread
+       (lambda ()
+         (run-reading-loop transport connection))
+       :name "jsonrpc/transport/tcp reading")
+
+      connection)))
+
+(defmethod send-message-using-transport ((transport tcp-transport) connection message)
   (let ((json (with-output-to-string (s)
-                (yason:encode message s))))
+                (yason:encode message s)))
+        (stream (connection-socket connection)))
     (write-sequence
      (string-to-utf-8-bytes
       (format nil
@@ -111,8 +125,9 @@
      stream)
     (force-output stream)))
 
-(defmethod receive-message-using-transport ((transport tcp-transport) stream)
-  (let* ((headers (read-headers stream))
+(defmethod receive-message-using-transport ((transport tcp-transport) connection)
+  (let* ((stream (connection-socket connection))
+         (headers (read-headers stream))
          (length (ignore-errors (parse-integer (gethash "content-length" headers)))))
     (when length
       (let ((body (make-array length :element-type '(unsigned-byte 8))))

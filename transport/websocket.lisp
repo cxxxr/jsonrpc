@@ -3,11 +3,17 @@
   (:use #:cl
         #:jsonrpc/transport/interface
         #:jsonrpc/utils)
+  (:import-from #:jsonrpc/connection
+                #:connection
+                #:connection-socket
+                #:add-message-to-queue)
   (:import-from #:jsonrpc/request-response
                 #:parse-message)
   (:import-from #:jsonrpc/errors
                 #:jsonrpc-error)
-  (:import-from #:bordeaux-threads)
+  (:import-from #:bordeaux-threads
+                #:make-thread
+                #:destroy-thread)
   (:import-from #:yason)
   (:import-from #:quri)
   (:import-from #:websocket-driver)
@@ -25,9 +31,6 @@
    (securep :accessor websocket-transport-secure-p
             :initarg :securep
             :initform nil)
-   (server :accessor websocket-transport-server
-           :initarg :server
-           :initform :hunchentoot)
    (debug :initarg :debug
           :initform t)
    (connect-cb :initarg :connect-cb
@@ -50,7 +53,12 @@
   (setf (transport-connection transport)
         (clack:clackup
          (lambda (env)
-           (let ((ws (wsd:make-server env)))
+           (let* ((ws (wsd:make-server env))
+                  (connection (make-instance 'connection
+                                             :socket ws
+                                             :request-callback
+                                             (transport-message-callback transport))))
+
              (wsd:on :message ws
                      (lambda (input)
                        (let ((message (handler-case (parse-message input)
@@ -58,40 +66,58 @@
                                           ;; Nothing can be done
                                           nil))))
                          (when message
-                           (handle-message transport ws message)))))
+                           (add-message-to-queue connection message)))))
+
              (when (slot-value transport 'connect-cb)
                (wsd:on :open ws
                        (lambda ()
-                         (funcall (slot-value transport 'connect-cb) ws))))
+                         (funcall (slot-value transport 'connect-cb) connection))))
              (lambda (responder)
                (declare (ignore responder))
-               (wsd:start-connection ws))))
+               (let ((thread
+                       (bt:make-thread
+                        (lambda ()
+                          (run-processing-loop transport connection))
+                        :name "jsonrpc/transport/websocket processing")))
+                 (unwind-protect
+                      (wsd:start-connection ws)
+                   (bt:destroy-thread thread))))))
          :host (websocket-transport-host transport)
          :port (websocket-transport-port transport)
-         :server (websocket-transport-server transport)
+         :server :hunchentoot
          :debug (slot-value transport 'debug)
          :use-thread nil)))
 
 (defmethod start-client ((transport websocket-transport))
-  (let ((client (wsd:make-client (format nil "~A://~A:~A/"
-                                         (if (websocket-transport-secure-p transport)
-                                             "wss"
-                                             "ws")
-                                         (websocket-transport-host transport)
-                                         (websocket-transport-port transport)))))
+  (let* ((client (wsd:make-client (format nil "~A://~A:~A/"
+                                          (if (websocket-transport-secure-p transport)
+                                              "wss"
+                                              "ws")
+                                          (websocket-transport-host transport)
+                                          (websocket-transport-port transport))))
+         (connection (make-instance 'connection
+                                    :socket client
+                                    :request-callback
+                                    (transport-message-callback transport))))
     (wsd:start-connection client)
-    (setf (transport-connection transport) client)
+    (setf (transport-connection transport) connection)
     (when (slot-value transport 'connect-cb)
       (funcall (slot-value transport 'connect-cb) client))
     (wsd:on :message client
-            (lambda (body)
-              (let ((message (parse-message body)))
-                (handle-message transport client message))))
-    transport))
+            (lambda (input)
+              (let ((message (parse-message input)))
+                (when message
+                  (add-message-to-queue connection message)))))
+    (bt:make-thread
+     (lambda ()
+       (run-processing-loop transport connection))
+     :name "jsonrpc/transport/websocket processing")
+    connection))
 
-(defmethod send-message-using-transport ((transport websocket-transport) ws message)
+(defmethod send-message-using-transport ((transport websocket-transport) connection message)
   (let ((json (with-output-to-string (s)
-                (yason:encode message s))))
+                (yason:encode message s)))
+        (ws (connection-socket connection)))
     (wsd:send ws json)))
 
 (defmethod receive-message-using-transport ((transport websocket-transport) connection)

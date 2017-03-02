@@ -22,7 +22,6 @@
 
    ;; from transports
    #:transport
-   #:*connection*
    #:send-message
    #:receive-message
 
