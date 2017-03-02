@@ -135,14 +135,16 @@
     (force-output stream)))
 
 (defmethod receive-message-using-transport ((transport tcp-transport) connection)
-  (let* ((stream (connection-socket connection))
-         (headers (read-headers stream))
-         (length (ignore-errors (parse-integer (gethash "content-length" headers)))))
-    (when length
-      (let ((body (make-array length :element-type '(unsigned-byte 8))))
-        (read-sequence body stream)
-        ;; TODO: error handling
-        (parse-message (utf-8-bytes-to-string body))))))
+  (handler-case
+      (let* ((stream (connection-socket connection))
+             (headers (read-headers stream))
+             (length (ignore-errors (parse-integer (gethash "content-length" headers)))))
+        (when length
+          (let ((body (make-array length :element-type '(unsigned-byte 8))))
+            (read-sequence body stream)
+            ;; TODO: error handling
+            (parse-message (utf-8-bytes-to-string body)))))
+    (eof () nil)))
 
 (defun read-headers (stream)
   (let (header-field
