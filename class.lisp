@@ -18,7 +18,6 @@
                 #:set-callback-for-id)
   (:import-from #:jsonrpc/request-response
                 #:make-request
-                #:response-id
                 #:response-error
                 #:response-error-code
                 #:response-error-message
@@ -131,19 +130,19 @@
 
 (deftype jsonrpc-params () '(or list array hash-table structure-object standard-object))
 
-(defun call-async-to (from to method &optional params (callback #'identity))
+(defun call-async-to (from to method &optional params callback error-callback)
   (check-type params jsonrpc-params)
   (let ((id (make-id)))
     (set-callback-for-id to
                          id
                          (lambda (response)
-                           (when (response-error response)
-                             (error "JSON-RPC response error: ~A (Code: ~A)"
-                                    (response-error-message response)
-                                    (response-error-code response)))
-                           (unless (equal (response-id response) id)
-                             (error "Unmatched response id"))
-                           (funcall callback (response-result response))))
+                           (if (response-error response)
+                               (and error-callback
+                                    (funcall error-callback
+                                             (response-error-message response)
+                                             (response-error-code response)))
+                               (and callback
+                                    (funcall callback (response-result response))))))
 
     (send-message from
                   to
@@ -163,7 +162,11 @@
                    (lambda (res)
                      (setf result res)
                      (bt:with-lock-held (condlock)
-                       (bt:condition-notify condvar))))
+                       (bt:condition-notify condvar)))
+                   (lambda (message code)
+                     (error "JSON-RPC response error: ~A (Code: ~A)"
+                            message
+                            code)))
 
     (bt:with-lock-held (condlock)
       (bt:condition-wait condvar condlock))
@@ -182,15 +185,16 @@
     (call-to client (transport-connection (jsonrpc-transport client))
              method params)))
 
-(defgeneric call-async (jsonrpc method &optional params callback)
-  (:method ((client client) method &optional params callback)
+(defgeneric call-async (jsonrpc method &optional params callback error-callback)
+  (:method ((client client) method &optional params callback error-callback)
     (call-async-to client (transport-connection (jsonrpc-transport client))
                    method params
-                   callback))
-  (:method ((server server) method &optional params callback)
+                   callback
+                   error-callback))
+  (:method ((server server) method &optional params callback error-callback)
     (unless (boundp '*connection*)
       (error "`call' is called outside of handlers."))
-    (call-async-to server *connection* method params callback)))
+    (call-async-to server *connection* method params callback error-callback)))
 
 (defgeneric notify (client method &optional params)
   (:method ((client client) method &optional params)
