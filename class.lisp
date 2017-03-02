@@ -30,7 +30,8 @@
                 #:destroy-thread)
   (:import-from #:event-emitter
                 #:on
-                #:emit)
+                #:emit
+                #:event-emitter)
   (:import-from #:alexandria
                 #:remove-from-plist)
   (:export #:client
@@ -52,7 +53,7 @@
            #:notify))
 (in-package #:jsonrpc/class)
 
-(defclass jsonrpc ()
+(defclass jsonrpc (event-emitter)
   ((mapper :initform (make-mapper)
            :accessor jsonrpc-mapper)
    (transport :type (or null transport)

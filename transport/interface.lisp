@@ -6,7 +6,8 @@
                 #:process-request
                 #:add-message-to-queue)
   (:import-from #:bordeaux-threads)
-  (:import-from #:dissect)
+  (:import-from #:event-emitter
+                #:event-emitter)
   (:export #:transport
            #:transport-message-callback
            #:transport-connection
@@ -19,7 +20,7 @@
            #:run-reading-loop))
 (in-package #:jsonrpc/transport/interface)
 
-(defclass transport ()
+(defclass transport (event-emitter)
   ((message-callback :initarg :message-callback
                      :accessor transport-message-callback)
    (connection :accessor transport-connection)

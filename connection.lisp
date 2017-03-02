@@ -16,6 +16,8 @@
                 #:condition-notify)
   (:import-from #:dissect
                 #:present)
+  (:import-from #:event-emitter
+                #:event-emitter)
   (:export #:connection
            #:*connection*
            #:connection-socket
@@ -28,7 +30,7 @@
 
 (defvar *connection*)
 
-(defclass connection ()
+(defclass connection (event-emitter)
   ((socket :initarg :socket
            :accessor connection-socket)
    (request-callback :initarg :request-callback
