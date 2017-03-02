@@ -72,55 +72,51 @@
   (setf (jsonrpc-mapper object) (make-mapper))
   object)
 
-(defgeneric server-listen (server &rest initargs &key mode &allow-other-keys)
-  (:method ((server server) &rest initargs &key (mode :tcp) &allow-other-keys)
-    (let* ((class (find-mode-class mode))
-           (initargs (remove-from-plist initargs :mode))
-           (bt:*default-special-bindings* `((*standard-output* . ,*standard-output*)
-                                            (*error-output* . ,*error-output*)) ))
-      (unless class
-        (error "Unknown mode ~A" mode))
-      (let ((transport (apply #'make-instance class
-                              :message-callback 
-                              (to-app (jsonrpc-mapper server))
-                              initargs)))
-        (setf (jsonrpc-transport server) transport)
+(defun server-listen (server &rest initargs &key mode &allow-other-keys)
+  (let* ((class (find-mode-class mode))
+         (initargs (remove-from-plist initargs :mode))
+         (bt:*default-special-bindings* `((*standard-output* . ,*standard-output*)
+                                          (*error-output* . ,*error-output*)) ))
+    (unless class
+      (error "Unknown mode ~A" mode))
+    (let ((transport (apply #'make-instance class
+                            :message-callback
+                            (to-app (jsonrpc-mapper server))
+                            initargs)))
+      (setf (jsonrpc-transport server) transport)
 
-        (on :open transport
-            (lambda (connection)
-              (emit :open server connection)))
+      (on :open transport
+          (lambda (connection)
+            (emit :open server connection)))
 
-        (start-server transport)))
-    server))
+      (start-server transport)))
+  server)
 
-(defgeneric client-connect (client &rest initargs &key mode &allow-other-keys)
-  (:method ((client client) &rest initargs &key (mode :tcp) &allow-other-keys)
-    (let* ((class (find-mode-class mode))
-           (initargs (remove-from-plist initargs :mode))
-           (bt:*default-special-bindings* `((*standard-output* . ,*standard-output*)
-                                            (*error-output* . ,*error-output*)) ))
-      (unless class
-        (error "Unknown mode ~A" mode))
-      (let ((transport (apply #'make-instance class
-                              :message-callback 
-                              (to-app (jsonrpc-mapper client))
-                              initargs)))
-        (setf (jsonrpc-transport client) transport)
+(defun client-connect (client &rest initargs &key mode &allow-other-keys)
+  (let* ((class (find-mode-class mode))
+         (initargs (remove-from-plist initargs :mode))
+         (bt:*default-special-bindings* `((*standard-output* . ,*standard-output*)
+                                          (*error-output* . ,*error-output*)) ))
+    (unless class
+      (error "Unknown mode ~A" mode))
+    (let ((transport (apply #'make-instance class
+                            :message-callback
+                            (to-app (jsonrpc-mapper client))
+                            initargs)))
+      (setf (jsonrpc-transport client) transport)
 
-        (on :open transport
-            (lambda (connection)
-              (emit :open client connection)))
+      (on :open transport
+          (lambda (connection)
+            (emit :open client connection)))
 
-        (start-client transport)))
-    client))
+      (start-client transport)))
+  client)
 
-(defgeneric send-message (to connection message)
-  (:method (to connection message)
-    (send-message-using-transport (jsonrpc-transport to) connection message)))
+(defun send-message (to connection message)
+  (send-message-using-transport (jsonrpc-transport to) connection message))
 
-(defgeneric receive-message (from connection)
-  (:method (from connection)
-    (receive-message-using-transport (jsonrpc-transport from) connection)))
+(defun receive-message (from connection)
+  (receive-message-using-transport (jsonrpc-transport from) connection))
 
 (deftype jsonrpc-params () '(or list array hash-table structure-object standard-object))
 
