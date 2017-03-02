@@ -116,10 +116,12 @@
     (wsd:start-connection client)
     (setf (transport-connection transport) connection)
 
-    (bt:make-thread
-     (lambda ()
-       (run-processing-loop transport connection))
-     :name "jsonrpc/transport/websocket processing")
+    (setf (transport-threads transport)
+          (list
+           (bt:make-thread
+            (lambda ()
+              (run-processing-loop transport connection))
+            :name "jsonrpc/transport/websocket processing")))
     connection))
 
 (defmethod send-message-using-transport ((transport websocket-transport) connection message)

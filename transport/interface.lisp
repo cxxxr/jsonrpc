@@ -10,6 +10,7 @@
   (:export #:transport
            #:transport-message-callback
            #:transport-connection
+           #:transport-threads
            #:start-server
            #:start-client
            #:send-message-using-transport
@@ -21,7 +22,9 @@
 (defclass transport ()
   ((message-callback :initarg :message-callback
                      :accessor transport-message-callback)
-   (connection :accessor transport-connection)))
+   (connection :accessor transport-connection)
+   (threads :initform '()
+            :accessor transport-threads)))
 
 (defgeneric start-server (transport))
 

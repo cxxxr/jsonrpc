@@ -46,14 +46,17 @@
                                     :socket stream
                                     :request-callback (transport-message-callback transport))))
     (setf (transport-connection transport) connection)
-    (bt:make-thread
-     (lambda ()
-       (run-processing-loop transport connection))
-     :name "jsonrpc/transport/stdio processing")
-    (bt:make-thread
-     (lambda ()
-       (run-reading-loop transport connection))
-     :name "jsonrpc/transport/stdio reading")
+
+    (setf (transport-threads transport)
+          (list
+           (bt:make-thread
+            (lambda ()
+              (run-processing-loop transport connection))
+            :name "jsonrpc/transport/stdio processing")
+           (bt:make-thread
+            (lambda ()
+              (run-reading-loop transport connection))
+            :name "jsonrpc/transport/stdio reading")))
     connection))
 
 (defmethod send-message-using-transport ((transport stdio-transport) connection message)

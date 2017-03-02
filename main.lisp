@@ -28,6 +28,7 @@
    ;; from class
    #:server-listen
    #:client-connect
+   #:client-disconnect
    #:expose
    #:register-method
    #:clear-methods

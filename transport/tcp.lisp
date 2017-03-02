@@ -104,15 +104,17 @@
 
       (emit :open transport connection)
 
-      (bt:make-thread
-       (lambda ()
-         (run-processing-loop transport connection))
-       :name "jsonrpc/transport/tcp processing")
+      (setf (transport-threads transport)
+            (list
+             (bt:make-thread
+              (lambda ()
+                (run-processing-loop transport connection))
+              :name "jsonrpc/transport/tcp processing")
 
-      (bt:make-thread
-       (lambda ()
-         (run-reading-loop transport connection))
-       :name "jsonrpc/transport/tcp reading")
+             (bt:make-thread
+              (lambda ()
+                (run-reading-loop transport connection))
+              :name "jsonrpc/transport/tcp reading")))
 
       connection)))
 

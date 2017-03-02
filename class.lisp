@@ -8,6 +8,7 @@
   (:import-from #:jsonrpc/transport/interface
                 #:transport
                 #:transport-connection
+                #:transport-threads
                 #:start-server
                 #:start-client
                 #:send-message-using-transport
@@ -26,7 +27,8 @@
                 #:find-mode-class
                 #:make-id)
   (:import-from #:bordeaux-threads
-                #:*default-special-bindings*)
+                #:*default-special-bindings*
+                #:destroy-thread)
   (:import-from #:event-emitter
                 #:on
                 #:emit)
@@ -40,6 +42,7 @@
            #:clear-methods
            #:server-listen
            #:client-connect
+           #:client-disconnect
            #:send-message
            #:receive-message
            #:call-to
@@ -111,6 +114,14 @@
 
       (start-client transport)))
   client)
+
+(defun client-disconnect (client)
+  (let ((transport (jsonrpc-transport client)))
+    (mapc #'bt:destroy-thread (transport-threads transport))
+    (setf (transport-threads transport) '())
+    (setf (transport-connection transport) nil))
+  (emit :close client)
+  (values))
 
 (defun send-message (to connection message)
   (send-message-using-transport (jsonrpc-transport to) connection message))
