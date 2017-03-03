@@ -14,9 +14,12 @@
 (in-package #:jsonrpc/errors)
 
 (define-condition jsonrpc-error (error)
-  ((code :accessor jsonrpc-error-code)
-   (message :accessor jsonrpc-error-message
-            :initarg :message)))
+  ((code :initarg :code
+         :initform -1
+         :accessor jsonrpc-error-code)
+   (message :initarg :message
+            :initform ""
+            :accessor jsonrpc-error-message)))
 
 (define-condition jsonrpc-parse-error (jsonrpc-error)
   ((code :initform -32700)
