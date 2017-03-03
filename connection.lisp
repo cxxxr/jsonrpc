@@ -105,16 +105,18 @@
                                (dissect:present e)))))
             (funcall (connection-request-callback connection) request))
         (jsonrpc-error (e)
-          (make-error-response
-           :id (request-id request)
-           :code (jsonrpc-error-code e)
-           :message (jsonrpc-error-message e)))
-        (error ()
-          (let ((e (make-condition 'jsonrpc-internal-error)))
+          (when (request-id request)
             (make-error-response
              :id (request-id request)
              :code (jsonrpc-error-code e)
-             :message (jsonrpc-error-message e))))))))
+             :message (jsonrpc-error-message e))))
+        (error ()
+          (when (request-id request)
+            (let ((e (make-condition 'jsonrpc-internal-error)))
+              (make-error-response
+               :id (request-id request)
+               :code (jsonrpc-error-code e)
+               :message (jsonrpc-error-message e)))))))))
 
 (defgeneric next-request (connection)
   (:method ((connection connection))
