@@ -23,6 +23,7 @@
            #:connection-socket
            #:connection-request-callback
            #:add-message-to-queue
+           #:add-message-to-outbox
            #:process-request
            #:next-request)
   (:documentation "jsonrpc/connection provides a class `connection' for holding data of each connections, like inbox and outbox."))
@@ -43,7 +44,10 @@
    (response-lock :initform (bt:make-lock))
    (response-callback :initform (make-hash-table :test 'equal))
 
-   (receive-condvar :initform (bt:make-condition-variable))))
+   (receive-condvar :initform (bt:make-condition-variable))
+
+   (outbox :initform (make-array 0 :adjustable t :fill-pointer 0))
+   (outbox-lock :initform (bt:make-lock))))
 
 (defgeneric add-message-to-queue (connection message)
   (:method ((connection connection) (message request))
@@ -71,6 +75,12 @@
                 (setf (gethash id response-map) message))))))
 
     (values)))
+
+(defun add-message-to-outbox (connection message)
+  (check-type message request)
+  (with-slots (outbox outbox-lock) connection
+    (bt:with-lock-held (outbox-lock)
+      (vector-push-extend message outbox))))
 
 (defun set-callback-for-id (connection id callback)
   (with-slots (response-map

@@ -4,7 +4,11 @@
   (:import-from #:jsonrpc/connection
                 #:next-request
                 #:process-request
-                #:add-message-to-queue)
+                #:add-message-to-queue
+
+                ;; private
+                #:outbox
+                #:outbox-lock)
   (:import-from #:bordeaux-threads)
   (:import-from #:event-emitter
                 #:event-emitter)
@@ -41,7 +45,13 @@
       (let* ((request (next-request connection))
              (response (process-request connection request)))
         (when response
-          (send-message-using-transport transport connection response))))))
+          (send-message-using-transport transport connection response)))
+      (with-slots (outbox outbox-lock) connection
+        (bt:with-lock-held (outbox-lock)
+          (unless (= 0 (length outbox))
+            (loop for message across outbox
+                  do (send-message-using-transport transport connection message))
+            (setf outbox (make-array 0 :adjustable t :fill-pointer 0))))))))
 
 (defgeneric run-reading-loop (transport connection)
   (:method ((transport transport) connection)

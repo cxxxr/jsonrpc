@@ -15,7 +15,8 @@
                 #:receive-message-using-transport)
   (:import-from #:jsonrpc/connection
                 #:*connection*
-                #:set-callback-for-id)
+                #:set-callback-for-id
+                #:add-message-to-outbox)
   (:import-from #:jsonrpc/request-response
                 #:make-request
                 #:response-error
@@ -50,7 +51,8 @@
            #:notify-to
            #:call
            #:call-async
-           #:notify))
+           #:notify
+           #:notify-async))
 (in-package #:jsonrpc/class)
 
 (defclass jsonrpc (event-emitter)
@@ -197,7 +199,7 @@
       (error "`call' is called outside of handlers."))
     (call-async-to server *connection* method params callback error-callback)))
 
-(defgeneric notify (client method &optional params)
+(defgeneric notify (jsonrpc method &optional params)
   (:method ((client client) method &optional params)
     (notify-to client (transport-connection (jsonrpc-transport client))
                method params))
@@ -206,3 +208,16 @@
       (error "`notify' is called outside of handlers."))
     (notify-to server *connection*
                method params)))
+
+(defgeneric notify-async (jsonrpc method &optional params)
+  (:method ((client client) method &optional params)
+    (let ((connection (transport-connection (jsonrpc-transport client))))
+      (add-message-to-outbox connection
+                             (make-request :method method
+                                           :params params))))
+  (:method ((server server) method &optional params)
+    (unless (boundp '*connection*)
+      (error "`notify-async' is called outside of handlers."))
+    (add-message-to-outbox *connection*
+                           (make-request :method method
+                                         :params params))))

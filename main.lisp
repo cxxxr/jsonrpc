@@ -38,6 +38,7 @@
    #:call
    #:call-async
    #:notify
+   #:notify-async
 
    ;; from errors
    #:jsonrpc-error
