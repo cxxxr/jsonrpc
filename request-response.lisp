@@ -97,8 +97,8 @@
                                     :error (gethash "error" hash)
                                     :id (gethash "id" hash))))))
         (etypecase message
-          (array
-           (map 'list #'make-message message))
+          (list
+           (mapcar #'make-message message))
           (hash-table
            (make-message message)))))))
 

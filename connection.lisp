@@ -50,6 +50,17 @@
    (outbox-lock :initform (bt:make-lock))))
 
 (defgeneric add-message-to-queue (connection message)
+  ;; batch
+  (:method ((connection connection) (messages list))
+    (if (typep (first messages) 'request)
+        (with-slots (request-queue request-lock receive-condvar) connection
+          (bt:with-lock-held (request-lock)
+            (vector-push-extend messages request-queue))
+          (bt:condition-notify receive-condvar))
+        (dolist (response messages)
+          (add-message-to-queue connection response)))
+    (values))
+
   (:method ((connection connection) (message request))
     (with-slots (request-queue request-lock receive-condvar) connection
       (bt:with-lock-held (request-lock)
@@ -96,6 +107,12 @@
     (values)))
 
 (defgeneric process-request (connection request)
+  ;; batch request
+  (:method ((connection connection) (requests list))
+    (mapcar (lambda (request)
+              (process-request connection request))
+            requests))
+
   (:method ((connection connection) (request request))
     (let ((*connection* connection))
       (handler-case
