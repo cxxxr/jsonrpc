@@ -3,6 +3,7 @@
   (:use #:cl
         #:rove
         #:jsonrpc)
+  (:import-from #:jsonrpc/transport/tcp)
   (:import-from #:bordeaux-threads))
 (in-package #:jsonrpc/tests/transport/tcp)
 

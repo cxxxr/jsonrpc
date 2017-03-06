@@ -3,6 +3,7 @@
   (:use #:cl
         #:rove
         #:jsonrpc)
+  (:import-from #:jsonrpc/transport/websocket)
   (:import-from #:bordeaux-threads))
 (in-package #:jsonrpc/tests/transport/websocket)
 
