@@ -8,3 +8,8 @@
   :license "BSD 2-Clause"
   :description "JSON-RPC 2.0 server/client implementation"
   :depends-on ("jsonrpc/main"))
+
+(defmethod asdf:perform ((op asdf:test-op) c)
+  (declare (ignore c))
+  (asdf:oos 'asdf:load-op :jsonrpc/tests)
+  (funcall (intern #.(string :run) :rove) :jsonrpc/tests))

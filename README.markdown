@@ -1,6 +1,8 @@
 # jsonrpc
 
 [![Quicklisp dist](http://quickdocs.org/badge/jsonrpc.svg)](http://quickdocs.org/jsonrpc/)
+[![Build Status](https://travis-ci.org/fukamachi/jsonrpc.svg?branch=master)](https://travis-ci.org/fukamachi/jsonrpc)
+[![Coverage Status](https://coveralls.io/repos/fukamachi/jsonrpc/badge.svg?branch=master)](https://coveralls.io/r/fukamachi/jsonrpc)
 
 JSON-RPC 2.0 server/client for Common Lisp.
 

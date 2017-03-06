@@ -17,7 +17,7 @@
 
     (unwind-protect
          (progn
-           (sleep 1)
+           (sleep 3)
            (jsonrpc:client-connect client :url "ws://127.0.0.1:50879" :mode :websocket)
            (ok (= (jsonrpc:call client "sum" '(10 20)) 30)))
       (bt:destroy-thread server-thread)
