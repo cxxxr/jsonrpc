@@ -6,6 +6,12 @@
   (:import-from #:bordeaux-threads))
 (in-package #:jsonrpc/tests/transport/websocket)
 
+(defun server-running-p (port)
+  (handler-case (let ((socket (usocket:socket-connect "127.0.0.1" port)))
+                  (usocket:socket-close socket)
+                  t)
+    (usocket:connection-refused-error () nil)))
+
 (deftest websocket-server
   (let ((server-thread
           (bt:make-thread
@@ -17,7 +23,9 @@
 
     (unwind-protect
          (progn
-           (sleep 3)
+           (sleep 0.5)
+           (loop until (server-running-p 50879)
+                 do (sleep 0.1))
            (jsonrpc:client-connect client :url "ws://127.0.0.1:50879" :mode :websocket)
            (ok (= (jsonrpc:call client "sum" '(10 20)) 30)))
       (bt:destroy-thread server-thread)
