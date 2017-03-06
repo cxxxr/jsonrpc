@@ -5,6 +5,9 @@
                 #:socket-listen
                 #:socket-close
                 #:address-in-use-error)
+  (:import-from #:bordeaux-threads
+                #:make-lock
+                #:with-lock-held)
   (:export #:random-port
            #:make-id
            #:find-mode-class))
@@ -32,13 +35,14 @@
               ((2 3) (code-char (+ #.(char-code #\A) (random 26))))
               ((4) (code-char (+ #.(char-code #\0) (random 10)))))))))
 
+(defvar *transport-load-lock* (bt:make-lock))
 (defun find-mode-class (mode)
   (let ((system-name (format nil "jsonrpc/transport/~(~A~)" mode))
         (package-name (format nil "~A/~A"
                               :jsonrpc/transport
                               mode)))
     (when (asdf:find-system system-name nil)
-      (with-output-to-string (*standard-output*)
+      (bt:with-lock-held (*transport-load-lock*)
         #+quicklisp
         (ql:quickload system-name :silent t)
         #-quicklisp
