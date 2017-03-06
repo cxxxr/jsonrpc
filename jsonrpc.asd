@@ -13,3 +13,5 @@
   (declare (ignore c))
   (asdf:oos 'asdf:load-op :jsonrpc/tests)
   (funcall (intern #.(string :run) :rove) :jsonrpc/tests))
+
+(asdf:register-system-packages "clack-handler-hunchentoot" '(#:clack.handler.hunchentoot))

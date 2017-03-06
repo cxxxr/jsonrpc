@@ -21,6 +21,7 @@
   (:import-from #:quri)
   (:import-from #:websocket-driver)
   (:import-from #:clack)
+  (:import-from #:clack.handler.hunchentoot)
   (:export #:websocket-transport))
 (in-package #:jsonrpc/transport/websocket)
 
