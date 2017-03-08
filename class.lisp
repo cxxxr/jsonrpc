@@ -2,9 +2,11 @@
 (defpackage #:jsonrpc/class
   (:use #:cl)
   (:import-from #:jsonrpc/mapper
-                #:make-mapper
-                #:to-app
-                #:register-method-to-mapper)
+                #:exposable
+                #:expose
+                #:register-method
+                #:clear-methods
+                #:dispatch)
   (:import-from #:jsonrpc/transport/interface
                 #:transport
                 #:transport-connection
@@ -41,6 +43,7 @@
            #:expose
            #:register-method
            #:clear-methods
+           #:dispatch
            #:server-listen
            #:client-connect
            #:client-disconnect
@@ -55,10 +58,8 @@
            #:notify-async))
 (in-package #:jsonrpc/class)
 
-(defclass jsonrpc (event-emitter)
-  ((mapper :initform (make-mapper)
-           :accessor jsonrpc-mapper)
-   (transport :type (or null transport)
+(defclass jsonrpc (event-emitter exposable)
+  ((transport :type (or null transport)
               :initarg :transport
               :initform nil
               :accessor jsonrpc-transport)))
@@ -66,16 +67,6 @@
 (defclass client (jsonrpc) ())
 
 (defclass server (jsonrpc) ())
-
-(defgeneric expose (object method-name function)
-  (:method ((object jsonrpc) method-name function)
-    (register-method-to-mapper (jsonrpc-mapper object)
-                               method-name function)))
-(setf (fdefinition 'register-method) #'expose)
-
-(defun clear-methods (object)
-  (setf (jsonrpc-mapper object) (make-mapper))
-  object)
 
 (defun server-listen (server &rest initargs &key mode &allow-other-keys)
   (let* ((class (find-mode-class mode))
@@ -86,7 +77,8 @@
       (error "Unknown mode ~A" mode))
     (let ((transport (apply #'make-instance class
                             :message-callback
-                            (to-app (jsonrpc-mapper server))
+                            (lambda (message)
+                              (dispatch server message))
                             initargs)))
       (setf (jsonrpc-transport server) transport)
 
@@ -106,7 +98,8 @@
       (error "Unknown mode ~A" mode))
     (let ((transport (apply #'make-instance class
                             :message-callback
-                            (to-app (jsonrpc-mapper client))
+                            (lambda (message)
+                              (dispatch client message))
                             initargs)))
       (setf (jsonrpc-transport client) transport)
 

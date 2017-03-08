@@ -2,6 +2,7 @@
 (defpackage #:jsonrpc/mapper
   (:use #:cl)
   (:import-from #:jsonrpc/request-response
+                #:request
                 #:request-method
                 #:request-params
                 #:make-response
@@ -9,23 +10,30 @@
   (:import-from #:jsonrpc/errors
                 #:jsonrpc-method-not-found
                 #:jsonrpc-invalid-params)
-  (:export #:make-mapper
-           #:register-method-to-mapper
-           #:to-app))
+  (:export #:exposable
+           #:expose
+           #:register-method
+           #:clear-methods
+           #:dispatch))
 (in-package #:jsonrpc/mapper)
 
-(defun make-mapper ()
-  (make-hash-table :test 'equal))
+(defclass exposable ()
+  ((mapper :initform (make-hash-table :test 'equal)
+           :accessor exposable-mapper)))
 
-(defun register-method-to-mapper (mapper method-name function)
-  (setf (gethash method-name mapper) function))
+(defgeneric expose (object method-name function)
+  (:method ((object exposable) method-name function)
+    (setf (gethash method-name (exposable-mapper object)) function)))
+(setf (fdefinition 'register-method) #'expose)
 
-(defun find-handler (mapper method-name)
-  (gethash method-name mapper))
+(defgeneric clear-methods (object)
+  (:method ((object exposable))
+    (setf (exposable-mapper object) (make-hash-table :test 'equal))
+    (values)))
 
-(defun to-app (mapper)
-  (lambda (message)
-    (let ((handler (find-handler mapper (request-method message))))
+(defgeneric dispatch (object message)
+  (:method ((object exposable) (request request))
+    (let ((handler (gethash (request-method request) (exposable-mapper object))))
       (unless handler
         (error 'jsonrpc-method-not-found))
       (let ((result (handler-bind (#+ccl
@@ -39,7 +47,7 @@
                                        (let ((message (simple-condition-format-control e)))
                                          (when (equal message "invalid number of arguments: ~S")
                                            (error 'jsonrpc-invalid-params))))))
-                      (funcall handler (request-params message)))))
-        (when (request-id message)
-          (make-response :id (request-id message)
+                      (funcall handler (request-params request)))))
+        (when (request-id request)
+          (make-response :id (request-id request)
                          :result result))))))
