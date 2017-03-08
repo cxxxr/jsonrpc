@@ -1,13 +1,10 @@
 (in-package #:cl-user)
 (defpackage #:jsonrpc/connection
-  (:use #:cl
-        #:jsonrpc/errors)
+  (:use #:cl)
   (:import-from #:jsonrpc/request-response
                 #:request
                 #:response
-                #:request-id
-                #:response-id
-                #:make-error-response)
+                #:response-id)
   (:import-from #:bordeaux-threads
                 #:make-lock
                 #:with-lock-held
@@ -115,25 +112,7 @@
 
   (:method ((connection connection) (request request))
     (let ((*connection* connection))
-      (handler-case
-          (handler-bind ((error
-                           (lambda (e)
-                             (unless (typep e 'jsonrpc-error)
-                               (dissect:present e)))))
-            (funcall (connection-request-callback connection) request))
-        (jsonrpc-error (e)
-          (when (request-id request)
-            (make-error-response
-             :id (request-id request)
-             :code (jsonrpc-error-code e)
-             :message (jsonrpc-error-message e))))
-        (error ()
-          (when (request-id request)
-            (let ((e (make-condition 'jsonrpc-internal-error)))
-              (make-error-response
-               :id (request-id request)
-               :code (jsonrpc-error-code e)
-               :message (jsonrpc-error-message e)))))))))
+      (funcall (connection-request-callback connection) request))))
 
 (defgeneric next-request (connection)
   (:method ((connection connection))

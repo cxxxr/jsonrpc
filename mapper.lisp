@@ -1,13 +1,16 @@
 (in-package #:cl-user)
 (defpackage #:jsonrpc/mapper
-  (:use #:cl)
+  (:use #:cl
+        #:jsonrpc/errors)
   (:import-from #:jsonrpc/request-response
                 #:request
                 #:request-method
                 #:request-params
                 #:make-response
+                #:make-error-response
                 #:request-id)
   (:import-from #:jsonrpc/errors
+                #:jsonrpc-error
                 #:jsonrpc-method-not-found
                 #:jsonrpc-invalid-params)
   (:export #:exposable
@@ -33,7 +36,8 @@
 
 (defgeneric dispatch (object message)
   (:method ((object exposable) (request request))
-    (let ((handler (gethash (request-method request) (exposable-mapper object))))
+    (let ((handler (gethash (request-method request)
+                            (exposable-mapper object))))
       (unless handler
         (error 'jsonrpc-method-not-found))
       (let ((result (handler-bind (#+ccl
@@ -50,4 +54,24 @@
                       (funcall handler (request-params request)))))
         (when (request-id request)
           (make-response :id (request-id request)
-                         :result result))))))
+                         :result result)))))
+  (:method :around ((object exposable) (request request))
+    (handler-case
+        (handler-bind ((error
+                         (lambda (e)
+                           (unless (typep e 'jsonrpc-error)
+                             (dissect:present e)))))
+          (call-next-method))
+      (jsonrpc-error (e)
+        (when (request-id request)
+          (make-error-response
+           :id (request-id request)
+           :code (jsonrpc-error-code e)
+           :message (jsonrpc-error-message e))))
+      (error ()
+        (when (request-id request)
+          (let ((e (make-condition 'jsonrpc-internal-error)))
+            (make-error-response
+             :id (request-id request)
+             :code (jsonrpc-error-code e)
+             :message (jsonrpc-error-message e))))))))
