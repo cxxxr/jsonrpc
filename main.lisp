@@ -32,6 +32,7 @@
    #:expose
    #:register-method
    #:clear-methods
+   #:dispatch
    #:call-to
    #:call-async-to
    #:notify-to
