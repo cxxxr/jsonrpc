@@ -26,6 +26,8 @@
    #:receive-message
 
    ;; from class
+   #:server
+   #:client
    #:server-listen
    #:client-connect
    #:client-disconnect
