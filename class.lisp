@@ -118,8 +118,9 @@
   (emit :close client)
   (values))
 
-(defun send-message (to connection message)
-  (send-message-using-transport (jsonrpc-transport to) connection message))
+(defgeneric send-message (to connection message)
+  (:method (to connection message)
+    (send-message-using-transport (jsonrpc-transport to) connection message)))
 
 (defun receive-message (from connection)
   (receive-message-using-transport (jsonrpc-transport from) connection))
