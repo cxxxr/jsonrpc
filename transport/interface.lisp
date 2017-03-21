@@ -2,16 +2,14 @@
 (defpackage #:jsonrpc/transport/interface
   (:use #:cl)
   (:import-from #:jsonrpc/connection
-                #:next-request
                 #:process-request
                 #:add-message-to-queue
-
-                ;; private
-                #:outbox
-                #:outbox-lock)
+                #:connection-request-queue
+                #:connection-outbox)
   (:import-from #:bordeaux-threads)
   (:import-from #:event-emitter
                 #:event-emitter)
+  (:import-from #:chanl)
   (:export #:transport
            #:transport-message-callback
            #:transport-connection
@@ -42,16 +40,13 @@
 (defgeneric run-processing-loop (transport connection)
   (:method ((transport transport) connection)
     (loop
-      (let* ((request (next-request connection))
-             (response (process-request connection request)))
-        (when response
-          (send-message-using-transport transport connection response)))
-      (with-slots (outbox outbox-lock) connection
-        (bt:with-lock-held (outbox-lock)
-          (unless (= 0 (length outbox))
-            (loop for message across outbox
-                  do (send-message-using-transport transport connection message))
-            (setf outbox (make-array 0 :adjustable t :fill-pointer 0))))))))
+      (chanl:select
+        ((chanl:recv (connection-request-queue connection) request)
+         (let ((response (process-request connection request)))
+           (when response
+             (send-message-using-transport transport connection response))))
+        ((chanl:recv (connection-outbox connection) message)
+         (send-message-using-transport transport connection message))))))
 
 (defgeneric run-reading-loop (transport connection)
   (:method ((transport transport) connection)

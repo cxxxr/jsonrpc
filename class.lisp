@@ -13,7 +13,6 @@
                 #:transport-threads
                 #:start-server
                 #:start-client
-                #:send-message-using-transport
                 #:receive-message-using-transport)
   (:import-from #:jsonrpc/connection
                 #:*connection*
@@ -120,7 +119,8 @@
 
 (defgeneric send-message (to connection message)
   (:method (to connection message)
-    (send-message-using-transport (jsonrpc-transport to) connection message)))
+    (declare (ignore to))
+    (add-message-to-outbox connection message)))
 
 (defun receive-message (from connection)
   (receive-message-using-transport (jsonrpc-transport from) connection))
@@ -206,12 +206,12 @@
 (defgeneric notify-async (jsonrpc method &optional params)
   (:method ((client client) method &optional params)
     (let ((connection (transport-connection (jsonrpc-transport client))))
-      (add-message-to-outbox connection
-                             (make-request :method method
-                                           :params params))))
+      (send-message jsonrpc connection
+                    (make-request :method method
+                                  :params params))))
   (:method ((server server) method &optional params)
     (unless (boundp '*connection*)
       (error "`notify-async' is called outside of handlers."))
-    (add-message-to-outbox *connection*
-                           (make-request :method method
-                                         :params params))))
+    (send-message jsonrpc *connection*
+                  (make-request :method method
+                                :params params))))
