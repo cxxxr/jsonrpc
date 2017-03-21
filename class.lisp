@@ -206,12 +206,12 @@
 (defgeneric notify-async (jsonrpc method &optional params)
   (:method ((client client) method &optional params)
     (let ((connection (transport-connection (jsonrpc-transport client))))
-      (send-message jsonrpc connection
+      (send-message client connection
                     (make-request :method method
                                   :params params))))
   (:method ((server server) method &optional params)
     (unless (boundp '*connection*)
       (error "`notify-async' is called outside of handlers."))
-    (send-message jsonrpc *connection*
+    (send-message server *connection*
                   (make-request :method method
                                 :params params))))
