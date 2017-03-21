@@ -5,7 +5,8 @@
                 #:process-request
                 #:add-message-to-queue
                 #:connection-request-queue
-                #:connection-outbox)
+                #:connection-outbox
+                #:add-message-to-outbox)
   (:import-from #:bordeaux-threads)
   (:import-from #:event-emitter
                 #:event-emitter)
@@ -44,7 +45,7 @@
         ((chanl:recv (connection-request-queue connection) request)
          (let ((response (process-request connection request)))
            (when response
-             (send-message-using-transport transport connection response))))
+             (add-message-to-outbox connection response))))
         ((chanl:recv (connection-outbox connection) message)
          (send-message-using-transport transport connection message))))))
 

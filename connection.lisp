@@ -76,8 +76,7 @@
     (values)))
 
 (defun add-message-to-outbox (connection message)
-  (check-type message request)
-  (chanl:send (slot-value connection 'outbox) message))
+  (chanl:send (connection-outbox connection) message))
 
 (defun set-callback-for-id (connection id callback)
   (with-slots (response-map
