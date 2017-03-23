@@ -5,3 +5,6 @@
   (:import-from #:jsonrpc/tests/transport/tcp)
   (:import-from #:jsonrpc/tests/transport/stdio)
   (:import-from #:jsonrpc/tests/transport/websocket))
+
+(defmethod asdf:perform :after ((op asdf:test-op) (system (eql (asdf:find-system :jsonrpc/tests))))
+  (rove:run system))
