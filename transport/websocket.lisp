@@ -122,7 +122,11 @@
            (bt:make-thread
             (lambda ()
               (run-processing-loop transport connection))
-            :name "jsonrpc/transport/websocket processing")))
+            :name "jsonrpc/transport/websocket processing")
+           ;; KLUDGE: Requires to kill the read-thread of WebSocket client
+           ;;   for calling 'close-connection'.
+           ;;   Perhaps, finalization should be done in other places.
+           (slot-value client 'websocket-driver.ws.client::read-thread)))
     connection))
 
 (defmethod send-message-using-transport ((transport websocket-transport) connection message)
