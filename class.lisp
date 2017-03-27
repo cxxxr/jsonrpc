@@ -13,11 +13,11 @@
                 #:transport-threads
                 #:start-server
                 #:start-client
-                #:send-message-using-transport
                 #:receive-message-using-transport)
   (:import-from #:jsonrpc/connection
                 #:*connection*
-                #:set-callback-for-id)
+                #:set-callback-for-id
+                #:add-message-to-outbox)
   (:import-from #:jsonrpc/request-response
                 #:make-request
                 #:response-error
@@ -119,7 +119,8 @@
 
 (defgeneric send-message (to connection message)
   (:method (to connection message)
-    (send-message-using-transport (jsonrpc-transport to) connection message)))
+    (declare (ignore to))
+    (add-message-to-outbox connection message)))
 
 (defun receive-message (from connection)
   (receive-message-using-transport (jsonrpc-transport from) connection))
