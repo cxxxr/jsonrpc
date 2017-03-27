@@ -18,11 +18,9 @@
            #:connection-socket
            #:connection-request-callback
            #:add-message-to-queue
-           #:add-message-to-outbox
            #:process-request
-           #:connection-request-queue
-           #:connection-outbox)
-  (:documentation "jsonrpc/connection provides a class `connection' for holding data of each connections, like inbox and outbox."))
+           #:connection-request-queue)
+  (:documentation "jsonrpc/connection provides a class `connection' for holding data of each connections, like inbox."))
 (in-package #:jsonrpc/connection)
 
 (defvar *connection*)
@@ -38,10 +36,7 @@
 
    (response-map :initform (make-hash-table :test 'equal))
    (response-lock :initform (bt:make-lock))
-   (response-callback :initform (make-hash-table :test 'equal))
-
-   (outbox :initform (make-instance 'chanl:unbounded-channel)
-           :accessor connection-outbox)))
+   (response-callback :initform (make-hash-table :test 'equal))))
 
 (defgeneric add-message-to-queue (connection message)
   ;; batch
@@ -74,9 +69,6 @@
                 (setf (gethash id response-map) message))))))
 
     (values)))
-
-(defun add-message-to-outbox (connection message)
-  (chanl:send (connection-outbox connection) message))
 
 (defun set-callback-for-id (connection id callback)
   (with-slots (response-map

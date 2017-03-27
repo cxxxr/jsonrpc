@@ -4,9 +4,7 @@
   (:import-from #:jsonrpc/connection
                 #:process-request
                 #:add-message-to-queue
-                #:connection-request-queue
-                #:connection-outbox
-                #:add-message-to-outbox)
+                #:connection-request-queue)
   (:import-from #:bordeaux-threads)
   (:import-from #:event-emitter
                 #:event-emitter)
@@ -28,26 +26,28 @@
                      :accessor transport-message-callback)
    (connection :accessor transport-connection)
    (threads :initform '()
-            :accessor transport-threads)))
+            :accessor transport-threads)
+   (send-lock :initform (bt:make-lock)
+              :reader transport-send-lock)))
 
 (defgeneric start-server (transport))
 
 (defgeneric start-client (transport))
 
-(defgeneric send-message-using-transport (transport to message))
+(defgeneric send-message-using-transport (transport to message)
+  (:method :around ((transport transport) to message)
+    (bt:with-lock-held ((transport-send-lock transport))
+      (call-next-method))))
 
 (defgeneric receive-message-using-transport (transport from))
 
 (defgeneric run-processing-loop (transport connection)
   (:method ((transport transport) connection)
     (loop
-      (chanl:select
-        ((chanl:recv (connection-request-queue connection) request)
-         (let ((response (process-request connection request)))
-           (when response
-             (add-message-to-outbox connection response))))
-        ((chanl:recv (connection-outbox connection) message)
-         (send-message-using-transport transport connection message))))))
+      (let* ((request (chanl:recv (connection-request-queue connection)))
+             (response (process-request connection request)))
+        (when response
+          (send-message-using-transport transport connection response))))))
 
 (defgeneric run-reading-loop (transport connection)
   (:method ((transport transport) connection)
