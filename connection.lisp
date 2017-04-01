@@ -15,6 +15,7 @@
   (:import-from #:chanl)
   (:export #:connection
            #:*connection*
+           #:wait-for-ready
            #:connection-socket
            #:connection-request-callback
            #:add-message-to-queue
@@ -27,7 +28,22 @@
 
 (defvar *connection*)
 
-(defclass connection (event-emitter)
+(defclass process-wait ()
+  ((condvar :initform (bt:make-condition-variable))
+   (condlock :initform (bt:make-recursive-lock))))
+
+(defgeneric wait-for-ready (process-wait)
+  (:method ((process-wait process-wait))
+    (bt:with-recursive-lock-held ((slot-value process-wait 'condlock))
+      (bt:condition-wait (slot-value process-wait 'condvar)
+                         (slot-value process-wait 'condlock)))))
+
+(defgeneric notify-ready (process-wait)
+  (:method ((process-wait process-wait))
+    (bt:with-recursive-lock-held ((slot-value process-wait 'condlock))
+      (bt:condition-notify (slot-value process-wait 'condvar)))))
+
+(defclass connection (event-emitter process-wait)
   ((socket :initarg :socket
            :accessor connection-socket)
    (request-callback :initarg :request-callback
@@ -47,13 +63,16 @@
   ;; batch
   (:method ((connection connection) (messages list))
     (if (typep (first messages) 'request)
-        (chanl:send (slot-value connection 'request-queue) messages)
+        (progn
+          (chanl:send (slot-value connection 'request-queue) messages)
+          (notify-ready connection))
         (dolist (response messages)
           (add-message-to-queue connection response)))
     (values))
 
   (:method ((connection connection) (message request))
     (chanl:send (slot-value connection 'request-queue) message)
+    (notify-ready connection)
     (values))
 
   (:method ((connection connection) (message response))
@@ -76,7 +95,8 @@
     (values)))
 
 (defun add-message-to-outbox (connection message)
-  (chanl:send (connection-outbox connection) message))
+  (chanl:send (connection-outbox connection) message)
+  (notify-ready connection))
 
 (defun set-callback-for-id (connection id callback)
   (with-slots (response-map

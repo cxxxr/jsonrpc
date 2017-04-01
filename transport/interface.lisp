@@ -2,6 +2,7 @@
 (defpackage #:jsonrpc/transport/interface
   (:use #:cl)
   (:import-from #:jsonrpc/connection
+                #:wait-for-ready
                 #:process-request
                 #:add-message-to-queue
                 #:connection-request-queue
@@ -40,14 +41,19 @@
 
 (defgeneric run-processing-loop (transport connection)
   (:method ((transport transport) connection)
-    (loop
-      (chanl:select
-        ((chanl:recv (connection-request-queue connection) request)
-         (let ((response (process-request connection request)))
-           (when response
-             (add-message-to-outbox connection response))))
-        ((chanl:recv (connection-outbox connection) message)
-         (send-message-using-transport transport connection message))))))
+    (let ((request-queue (connection-request-queue connection))
+          (outbox (connection-outbox connection)))
+      (loop
+        (when (and (chanl:recv-blocks-p request-queue)
+                   (chanl:recv-blocks-p outbox))
+          (wait-for-ready connection))
+        (chanl:select
+          ((chanl:recv request-queue request)
+           (let ((response (process-request connection request)))
+             (when response
+               (add-message-to-outbox connection response))))
+          ((chanl:recv outbox message)
+           (send-message-using-transport transport connection message)))))))
 
 (defgeneric run-reading-loop (transport connection)
   (:method ((transport transport) connection)
