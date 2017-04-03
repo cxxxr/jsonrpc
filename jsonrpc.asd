@@ -4,7 +4,6 @@
   :author "Eitaro Fukamachi"
   :license "BSD 2-Clause"
   :description "JSON-RPC 2.0 server/client implementation"
-  :pathname "src/"
   :depends-on ("jsonrpc/main")
   :in-order-to ((test-op (test-op "jsonrpc/tests"))))
 

@@ -17,4 +17,4 @@ install:
   - ros install fukamachi/rove
 
 script:
-  - rove tests.lisp
+  - rove jsonrpc.asd
