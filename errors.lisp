@@ -1,6 +1,7 @@
 (in-package #:cl-user)
 (defpackage #:jsonrpc/errors
   (:use #:cl)
+  (:import-from #:yason)
   (:export #:jsonrpc-error
            #:jsonrpc-parse-error
            #:jsonrpc-invalid-request
@@ -46,3 +47,9 @@
    (message :initform "Internal error")))
 
 (define-condition jsonrpc-server-error (jsonrpc-error) ())
+
+(defmethod yason:encode ((object jsonrpc-error) &optional stream)
+  (yason:with-output (stream)
+    (yason:with-object ()
+      (yason:encode-object-element "code" (jsonrpc-error-code object))
+      (yason:encode-object-element "message" (jsonrpc-error-message object)))))
