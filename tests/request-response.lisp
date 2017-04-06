@@ -52,4 +52,7 @@
   (testing "response"
     (let ((response (make-response :id 1 :result 13)))
       (ok (outputs (yason:encode response)
-              "{\"jsonrpc\":\"2.0\",\"result\":13,\"id\":1}")))))
+              "{\"jsonrpc\":\"2.0\",\"result\":13,\"id\":1}")))
+    (let ((response (make-response :id 2 :result nil)))
+      (ok (outputs (yason:encode response)
+              "{\"jsonrpc\":\"2.0\",\"result\":null,\"id\":2}")))))

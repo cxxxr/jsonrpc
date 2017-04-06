@@ -115,9 +115,7 @@
   (yason:with-output (stream)
     (yason:with-object ()
       (yason:encode-object-element "jsonrpc" "2.0")
-      (cond
-        ((response-error response)
-         (yason:encode-object-element "error" (response-error response)))
-        ((response-result response)
-         (yason:encode-object-element "result" (response-result response))))
+      (if (response-error response)
+          (yason:encode-object-element "error" (response-error response))
+          (yason:encode-object-element "result" (response-result response)))
       (yason:encode-object-element "id" (response-id response)))))
