@@ -10,6 +10,7 @@
            #:jsonrpc-invalid-params
            #:jsonrpc-internal-error
            #:jsonrpc-server-error
+           #:jsonrpc-callback-error
            #:jsonrpc-error-code
            #:jsonrpc-error-message))
 (in-package #:jsonrpc/errors)
@@ -47,6 +48,8 @@
    (message :initform "Internal error")))
 
 (define-condition jsonrpc-server-error (jsonrpc-error) ())
+
+(define-condition jsonrpc-callback-error (jsonrpc-error) ())
 
 (defmethod yason:encode ((object jsonrpc-error) &optional stream)
   (yason:with-output (stream)

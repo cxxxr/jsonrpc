@@ -24,6 +24,8 @@
                 #:response-error-code
                 #:response-error-message
                 #:response-result)
+  (:import-from #:jsonrpc/errors
+                #:jsonrpc-callback-error)
   (:import-from #:jsonrpc/utils
                 #:find-mode-class
                 #:make-id)
@@ -152,7 +154,8 @@
 (defun call-to (from to method &optional params)
   (let ((condvar (bt:make-condition-variable))
         (condlock (bt:make-lock))
-        result)
+        result
+        error)
     (call-async-to from to
                    method
                    params
@@ -161,14 +164,19 @@
                      (bt:with-lock-held (condlock)
                        (bt:condition-notify condvar)))
                    (lambda (message code)
-                     (error "JSON-RPC response error: ~A (Code: ~A)"
-                            message
-                            code)))
+                     (setf error
+                           (make-condition 'jsonrpc-callback-error
+                                           :message message
+                                           :code code))
+                     (bt:with-lock-held (condlock)
+                       (bt:condition-notify condvar))))
 
     (bt:with-lock-held (condlock)
       (bt:condition-wait condvar condlock))
 
-    result))
+    (if error
+        (error error)
+        result)))
 
 (defun notify-to (from to method &optional params)
   (check-type params jsonrpc-params)

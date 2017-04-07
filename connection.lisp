@@ -13,6 +13,7 @@
   (:import-from #:event-emitter
                 #:event-emitter)
   (:import-from #:chanl)
+  (:import-from #:vom)
   (:export #:connection
            #:*connection*
            #:wait-for-ready
@@ -88,7 +89,12 @@
           (let ((callback (gethash id response-callback)))
             (if callback
                 (progn
-                  (funcall callback message)
+                  (handler-case
+                      (funcall callback message)
+                    (error (e)
+                      (vom:error "~A in a JSON-RPC response callback: ~A"
+                                 (type-of e)
+                                 e)))
                   (remhash id response-callback))
                 (setf (gethash id response-map) message))))))
 
