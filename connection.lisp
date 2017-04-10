@@ -7,7 +7,8 @@
                 #:response-id)
   (:import-from #:bordeaux-threads
                 #:make-lock
-                #:with-lock-held)
+                #:with-lock-held
+                #:*default-special-bindings*)
   (:import-from #:dissect
                 #:present)
   (:import-from #:event-emitter
@@ -125,5 +126,7 @@
             requests))
 
   (:method ((connection connection) (request request))
-    (let ((*connection* connection))
+    (let ((*connection* connection)
+          (bt:*default-special-bindings* (append `((*connection* . ,connection))
+                                                 bt:*default-special-bindings*)))
       (funcall (connection-request-callback connection) request))))
