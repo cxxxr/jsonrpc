@@ -110,8 +110,9 @@
                response-callback
                response-lock) connection
     (bt:with-lock-held (response-lock)
-      (let ((response (gethash id response-map)))
-        (if response
+      (multiple-value-bind (resonse existsp)
+          (gethash id response-map)
+        (if existsp
             (progn
               (funcall callback response)
               (remhash id response-map))
