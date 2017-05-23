@@ -6,8 +6,11 @@
                 #:response
                 #:response-id)
   (:import-from #:bordeaux-threads
-                #:make-lock
-                #:with-lock-held
+                #:make-condition-variable
+                #:make-recursive-lock
+                #:with-recursive-lock-held
+                #:condition-wait
+                #:condition-notify
                 #:*default-special-bindings*)
   (:import-from #:dissect
                 #:present)
@@ -55,7 +58,7 @@
                   :accessor connection-request-queue)
 
    (response-map :initform (make-hash-table :test 'equal))
-   (response-lock :initform (bt:make-lock))
+   (response-lock :initform (bt:make-recursive-lock "jsonrpc/connection response-lock"))
    (response-callback :initform (make-hash-table :test 'equal))
 
    (outbox :initform (make-instance 'chanl:unbounded-channel)
@@ -86,7 +89,7 @@
       (with-slots (response-map
                    response-lock
                    response-callback) connection
-        (bt:with-lock-held (response-lock)
+        (bt:with-recursive-lock-held (response-lock)
           (let ((callback (gethash id response-callback)))
             (if callback
                 (progn
@@ -109,7 +112,7 @@
   (with-slots (response-map
                response-callback
                response-lock) connection
-    (bt:with-lock-held (response-lock)
+    (bt:with-recursive-lock-held (response-lock)
       (multiple-value-bind (resonse existsp)
           (gethash id response-map)
         (if existsp
