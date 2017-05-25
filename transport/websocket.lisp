@@ -109,7 +109,8 @@
           (emit :open transport connection)))
 
     (on :close client
-        (lambda ()
+        (lambda (&key code reason)
+          (declare (ignore code reason))
           ;; Reconnect automatically
           (wsd:start-connection client)))
 
