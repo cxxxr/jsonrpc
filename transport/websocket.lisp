@@ -108,6 +108,11 @@
         (lambda ()
           (emit :open transport connection)))
 
+    (on :close client
+        (lambda ()
+          ;; Reconnect automatically
+          (wsd:start-connection client)))
+
     (on :message client
         (lambda (input)
           (let ((message (parse-message input)))
