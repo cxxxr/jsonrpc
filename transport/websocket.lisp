@@ -74,7 +74,8 @@
                    (emit :open transport connection)))
 
              (on :close ws
-                 (lambda ()
+                 (lambda (&key code reason)
+                   (declare (ignore code reason))
                    (emit :close connection)))
 
              (lambda (responder)
