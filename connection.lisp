@@ -113,7 +113,7 @@
                response-callback
                response-lock) connection
     (bt:with-recursive-lock-held (response-lock)
-      (multiple-value-bind (resonse existsp)
+      (multiple-value-bind (response existsp)
           (gethash id response-map)
         (if existsp
             (progn
