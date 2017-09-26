@@ -176,7 +176,8 @@
                          (bt:condition-notify condvar)))))
     (bt:with-lock-held (condlock)
       (bt:release-lock readylock)
-      (bt:condition-wait condvar condlock))
+      (unless (bt:condition-wait condvar condlock :timeout 10)
+        (error "JSON-RPC synchronous call has been timeout")))
 
     (if error
         (error error)
