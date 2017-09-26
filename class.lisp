@@ -151,37 +151,38 @@
 
     (values)))
 
-(defun call-to (from to method &optional params)
-  (let ((condvar (bt:make-condition-variable))
-        (condlock (bt:make-lock))
-        (readylock (bt:make-lock))
-        result
-        error)
-    (bt:acquire-lock readylock)
-    (call-async-to from to
-                   method
-                   params
-                   (lambda (res)
-                     (bt:with-lock-held (readylock)
-                       (bt:with-lock-held (condlock)
-                         (setf result res)
-                         (bt:condition-notify condvar))))
-                   (lambda (message code)
-                     (bt:with-lock-held (readylock)
-                       (bt:with-lock-held (condlock)
-                         (setf error
-                               (make-condition 'jsonrpc-callback-error
-                                               :message message
-                                               :code code))
-                         (bt:condition-notify condvar)))))
-    (bt:with-lock-held (condlock)
-      (bt:release-lock readylock)
-      (unless (bt:condition-wait condvar condlock :timeout 10)
-        (error "JSON-RPC synchronous call has been timeout")))
+(defun call-to (from to method &optional params &rest options)
+  (destructuring-bind (&key timeout) options
+    (let ((condvar (bt:make-condition-variable))
+          (condlock (bt:make-lock))
+          (readylock (bt:make-lock))
+          result
+          error)
+      (bt:acquire-lock readylock)
+      (call-async-to from to
+                     method
+                     params
+                     (lambda (res)
+                       (bt:with-lock-held (readylock)
+                         (bt:with-lock-held (condlock)
+                           (setf result res)
+                           (bt:condition-notify condvar))))
+                     (lambda (message code)
+                       (bt:with-lock-held (readylock)
+                         (bt:with-lock-held (condlock)
+                           (setf error
+                                 (make-condition 'jsonrpc-callback-error
+                                                 :message message
+                                                 :code code))
+                           (bt:condition-notify condvar)))))
+      (bt:with-lock-held (condlock)
+        (bt:release-lock readylock)
+        (unless (bt:condition-wait condvar condlock :timeout timeout)
+          (error "JSON-RPC synchronous call has been timeout")))
 
-    (if error
-        (error error)
-        result)))
+      (if error
+          (error error)
+          result))))
 
 (defun notify-to (from to method &optional params)
   (check-type params jsonrpc-params)
@@ -190,10 +191,10 @@
                 (make-request :method method
                               :params params)))
 
-(defgeneric call (jsonrpc method &optional params)
-  (:method ((client client) method &optional params)
-    (call-to client (transport-connection (jsonrpc-transport client))
-             method params)))
+(defgeneric call (jsonrpc method &optional params &rest options)
+  (:method ((client client) method &optional params &rest options)
+    (apply #'call-to client (transport-connection (jsonrpc-transport client))
+           method params options)))
 
 (defgeneric call-async (jsonrpc method &optional params callback error-callback)
   (:method ((client client) method &optional params callback error-callback)

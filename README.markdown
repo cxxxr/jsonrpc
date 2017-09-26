@@ -22,6 +22,10 @@ JSON-RPC 2.0 server/client for Common Lisp.
 (jsonrpc:client-connect *client* :url "http://127.0.0.1:50879" :mode :tcp)
 (jsonrpc:call *client* "sum" '(10 20))
 ;=> 30
+
+;; Calling with :timeout option
+(jsonrpc:call *client* "sum" '(10 20) :timeout 1.0)
+;=> 30
 ```
 
 ## Author
