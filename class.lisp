@@ -154,24 +154,28 @@
 (defun call-to (from to method &optional params)
   (let ((condvar (bt:make-condition-variable))
         (condlock (bt:make-lock))
+        (readylock (bt:make-lock))
         result
         error)
+    (bt:acquire-lock readylock)
     (call-async-to from to
                    method
                    params
                    (lambda (res)
-                     (setf result res)
-                     (bt:with-lock-held (condlock)
-                       (bt:condition-notify condvar)))
+                     (bt:with-lock-held (readylock)
+                       (bt:with-lock-held (condlock)
+                         (setf result res)
+                         (bt:condition-notify condvar))))
                    (lambda (message code)
-                     (setf error
-                           (make-condition 'jsonrpc-callback-error
-                                           :message message
-                                           :code code))
-                     (bt:with-lock-held (condlock)
-                       (bt:condition-notify condvar))))
-
+                     (bt:with-lock-held (readylock)
+                       (bt:with-lock-held (condlock)
+                         (setf error
+                               (make-condition 'jsonrpc-callback-error
+                                               :message message
+                                               :code code))
+                         (bt:condition-notify condvar)))))
     (bt:with-lock-held (condlock)
+      (bt:release-lock readylock)
       (bt:condition-wait condvar condlock))
 
     (if error
