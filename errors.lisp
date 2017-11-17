@@ -49,7 +49,10 @@
 
 (define-condition jsonrpc-server-error (jsonrpc-error) ())
 
-(define-condition jsonrpc-callback-error (jsonrpc-error) ())
+(define-condition jsonrpc-callback-error (jsonrpc-error) ()
+  (:report (lambda (condition stream)
+             (with-slots (message code) condition
+               (format stream "JSONRPC-CALLBACK-ERROR: ~A (Code=~A)" message code)))))
 
 (defmethod yason:encode ((object jsonrpc-error) &optional stream)
   (yason:with-output (stream)
