@@ -59,7 +59,10 @@
                                         :element-type '(unsigned-byte 8))
     (setf (transport-connection transport) server)
     (let ((callback (transport-message-callback transport))
-          (client-threads '()))
+          (client-threads '())
+          (bt:*default-special-bindings* (append bt:*default-special-bindings*
+                                                 `((*standard-output* . ,*standard-output*)
+                                                   (*error-output* . ,*error-output*)))))
       (unwind-protect
            (loop
              (usocket:wait-for-input (list server) :timeout 10)
@@ -76,7 +79,10 @@
                              (bt:make-thread
                               (lambda ()
                                 (run-processing-loop transport connection))
-                              :name "jsonrpc/transport/tcp processing")))
+                              :name "jsonrpc/transport/tcp processing"
+                              :initial-bindings
+                              `((*standard-output* . ,*standard-output*)
+                                (*error-output* . ,*error-output*)))))
                        (unwind-protect
                             (run-reading-loop transport connection)
                          (finish-output (connection-socket connection))
@@ -100,7 +106,10 @@
     (let ((connection (make-instance 'connection
                                      :socket stream
                                      :request-callback
-                                     (transport-message-callback transport))))
+                                     (transport-message-callback transport)))
+          (bt:*default-special-bindings* (append bt:*default-special-bindings*
+                                                 `((*standard-output* . ,*standard-output*)
+                                                   (*error-output* . ,*error-output*)))))
       (setf (transport-connection transport) connection)
 
       (emit :open transport connection)
