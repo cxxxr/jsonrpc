@@ -26,6 +26,7 @@
    #:receive-message
 
    ;; from class
+   #:*default-timeout*
    #:server
    #:client
    #:server-listen

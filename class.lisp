@@ -38,7 +38,8 @@
                 #:event-emitter)
   (:import-from #:alexandria
                 #:remove-from-plist)
-  (:export #:client
+  (:export #:*default-timeout*
+           #:client
            #:server
            #:jsonrpc-transport
            #:expose
@@ -58,6 +59,8 @@
            #:notify
            #:notify-async))
 (in-package #:jsonrpc/class)
+
+(defvar *default-timeout* 10)
 
 (defclass jsonrpc (event-emitter exposable)
   ((transport :type (or null transport)
@@ -152,7 +155,7 @@
     (values)))
 
 (defun call-to (from to method &optional params &rest options)
-  (destructuring-bind (&key timeout) options
+  (destructuring-bind (&key (timeout *default-timeout*)) options
     (let ((condvar (bt:make-condition-variable))
           (condlock (bt:make-lock))
           (readylock (bt:make-lock))
