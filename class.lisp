@@ -60,7 +60,7 @@
            #:notify-async))
 (in-package #:jsonrpc/class)
 
-(defvar *default-timeout* 10)
+(defvar *default-timeout* 60)
 
 (defclass jsonrpc (event-emitter exposable)
   ((transport :type (or null transport)
