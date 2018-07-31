@@ -68,6 +68,11 @@
               :initform nil
               :accessor jsonrpc-transport)))
 
+(defun ensure-connected (jsonrpc)
+  (check-type jsonrpc jsonrpc)
+  (unless (jsonrpc-transport jsonrpc)
+    (error "Connection isn't established yet for ~A" jsonrpc)))
+
 (defclass client (jsonrpc) ())
 
 (defclass server (jsonrpc) ())
@@ -115,6 +120,7 @@
   client)
 
 (defun client-disconnect (client)
+  (ensure-connected client)
   (let ((transport (jsonrpc-transport client)))
     (mapc #'bt:destroy-thread (transport-threads transport))
     (setf (transport-threads transport) '())
@@ -128,6 +134,7 @@
     (add-message-to-outbox connection message)))
 
 (defun receive-message (from connection)
+  (ensure-connected from)
   (receive-message-using-transport (jsonrpc-transport from) connection))
 
 (deftype jsonrpc-params () '(or list array hash-table structure-object standard-object condition))
@@ -201,11 +208,13 @@
 
 (defgeneric call (jsonrpc method &optional params &rest options)
   (:method ((client client) method &optional params &rest options)
+    (ensure-connected client)
     (apply #'call-to client (transport-connection (jsonrpc-transport client))
            method params options)))
 
 (defgeneric call-async (jsonrpc method &optional params callback error-callback)
   (:method ((client client) method &optional params callback error-callback)
+    (ensure-connected client)
     (call-async-to client (transport-connection (jsonrpc-transport client))
                    method params
                    callback
@@ -217,6 +226,7 @@
 
 (defgeneric notify (jsonrpc method &optional params)
   (:method ((client client) method &optional params)
+    (ensure-connected client)
     (notify-to client (transport-connection (jsonrpc-transport client))
                method params))
   (:method ((server server) method &optional params)
@@ -227,6 +237,7 @@
 
 (defgeneric notify-async (jsonrpc method &optional params)
   (:method ((client client) method &optional params)
+    (ensure-connected client)
     (let ((connection (transport-connection (jsonrpc-transport client))))
       (send-message client connection
                     (make-request :method method
