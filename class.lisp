@@ -191,13 +191,17 @@
         (unless (bt:condition-wait condvar condlock :timeout timeout)
           (error "JSON-RPC synchronous call has been timeout")))
 
-      (let ((error (gethash readylock *call-to-error*))
-            (result (gethash readylock *call-to-result*)))
-        (remhash readylock *call-to-error*)
-        (remhash readylock *call-to-result*)
-        (if error
-            (error error)
-            result)))))
+      (multiple-value-bind (error error-exists-p)
+          (gethash readylock *call-to-error*)
+        (multiple-value-bind (result result-exists-p)
+            (gethash readylock *call-to-result*)
+          (assert (or error-exists-p
+                      result-exists-p))
+          (remhash readylock *call-to-error*)
+          (remhash readylock *call-to-result*)
+          (if error
+              (error error)
+              result))))))
 
 (defun notify-to (from to method &optional params)
   (check-type params jsonrpc-params)
