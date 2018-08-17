@@ -164,6 +164,9 @@
 (defvar *call-to-result* (make-hash-table :test 'eq))
 (defvar *call-to-error* (make-hash-table :test 'eq))
 
+(defun hash-exists-p (hash-table key)
+  (nth-value 1 (gethash key hash-table)))
+
 (defun call-to (from to method &optional params &rest options)
   (destructuring-bind (&key (timeout *default-timeout*)) options
     (let ((condvar (bt:make-condition-variable))
@@ -190,6 +193,13 @@
         (bt:release-lock readylock)
         (unless (bt:condition-wait condvar condlock :timeout timeout)
           (error "JSON-RPC synchronous call has been timeout")))
+
+      ;; XXX: Strangely enough, there's sometimes no results/errors here on SBCL.
+      #+(and sbcl linux)
+      (loop repeat 5
+            until (or (hash-exists-p *call-to-result* readylock)
+                      (hash-exists-p *call-to-error* readylock))
+            do (sleep 0.1))
 
       (multiple-value-bind (error error-exists-p)
           (gethash readylock *call-to-error*)
