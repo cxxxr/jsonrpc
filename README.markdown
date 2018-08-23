@@ -28,6 +28,11 @@ JSON-RPC 2.0 server/client for Common Lisp.
 ;=> 30
 ```
 
+## Experimental features (only for Server)
+
+- broadcast
+- multicall-async
+
 ## Author
 
 * Eitaro Fukamachi (e.arrows@gmail.com)

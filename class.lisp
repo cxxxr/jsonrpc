@@ -57,7 +57,9 @@
            #:call
            #:call-async
            #:notify
-           #:notify-async))
+           #:notify-async
+           #:broadcast
+           #:multicall-async))
 (in-package #:jsonrpc/class)
 
 (defvar *default-timeout* 60)
@@ -75,7 +77,10 @@
 
 (defclass client (jsonrpc) ())
 
-(defclass server (jsonrpc) ())
+(defclass server (jsonrpc)
+  ((client-connections :initform '()
+                       :accessor server-client-connections)
+   (%lock :initform (bt:make-lock "client-connections-lock"))))
 
 (defun server-listen (server &rest initargs &key mode &allow-other-keys)
   (let* ((class (find-mode-class mode))
@@ -93,6 +98,14 @@
 
       (on :open transport
           (lambda (connection)
+            (with-slots (%lock client-connections) server
+              (on :close connection
+                  (lambda ()
+                    (bt:with-lock-held (%lock)
+                      (setf client-connections
+                            (delete connection client-connections)))))
+              (bt:with-lock-held (%lock)
+                (push connection client-connections)))
             (emit :open server connection)))
 
       (start-server transport)))
@@ -262,3 +275,17 @@
     (send-message server *connection*
                   (make-request :method method
                                 :params params))))
+
+;; Experimental
+(defgeneric broadcast (jsonrpc method &optional params)
+  (:method ((server server) method &optional params)
+    (dolist (conn (server-client-connections server))
+      (notify server conn method params))))
+
+;; Experimental
+(defgeneric multicall-async (jsonrpc method &optional params callback error-callback)
+  (:method ((server server) method &optional params callback error-callback)
+    (dolist (conn (server-client-connections server))
+      (call-async-to server conn method params
+                     callback
+                     error-callback))))
