@@ -43,6 +43,8 @@
    #:call-async
    #:notify
    #:notify-async
+   #:broadcast
+   #:multicall-async
 
    ;; from errors
    #:jsonrpc-error
