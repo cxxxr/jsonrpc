@@ -46,6 +46,7 @@
            #:register-method
            #:clear-methods
            #:dispatch
+           #:prepare
            #:server-listen
            #:client-connect
            #:client-disconnect
@@ -82,54 +83,45 @@
                        :accessor server-client-connections)
    (%lock :initform (bt:make-lock "client-connections-lock"))))
 
-(defun server-listen (server &rest initargs &key mode &allow-other-keys)
+(defun prepare (object &rest initargs &key mode &allow-other-keys)
   (let* ((class (find-mode-class mode))
          (initargs (remove-from-plist initargs :mode))
-         (bt:*default-special-bindings* `((*standard-output* . ,*standard-output*)
-                                          (*error-output* . ,*error-output*)) ))
+         (bt:*default-special-bindings* (append
+                                         `((*standard-output* . ,*standard-output*)
+                                           (*error-output* . ,*error-output*))
+                                         bt:*default-special-bindings*)))
     (unless class
       (error "Unknown mode ~A" mode))
     (let ((transport (apply #'make-instance class
                             :message-callback
                             (lambda (message)
-                              (dispatch server message))
+                              (dispatch object message))
                             initargs)))
-      (setf (jsonrpc-transport server) transport)
+      (setf (jsonrpc-transport object) transport)
 
-      (on :open transport
-          (lambda (connection)
-            (with-slots (%lock client-connections) server
-              (on :close connection
-                  (lambda ()
-                    (bt:with-lock-held (%lock)
-                      (setf client-connections
-                            (delete connection client-connections)))))
-              (bt:with-lock-held (%lock)
-                (push connection client-connections)))
-            (emit :open server connection)))
+      (etypecase object
+        (server (on :open transport
+                    (lambda (connection)
+                      (with-slots (%lock client-connections) object
+                        (on :close connection
+                            (lambda ()
+                              (bt:with-lock-held (%lock)
+                                (setf client-connections
+                                      (delete connection client-connections)))))
+                        (bt:with-lock-held (%lock)
+                          (push connection client-connections)))
+                      (emit :open object connection))))
+        (client (on :open transport
+                    (lambda (connection)
+                      (emit :open object connection)))))
+      (jsonrpc-transport object))))
 
-      (start-server transport)))
+(defun server-listen (server &rest initargs)
+  (start-server (apply #'prepare server initargs))
   server)
 
-(defun client-connect (client &rest initargs &key mode &allow-other-keys)
-  (let* ((class (find-mode-class mode))
-         (initargs (remove-from-plist initargs :mode))
-         (bt:*default-special-bindings* `((*standard-output* . ,*standard-output*)
-                                          (*error-output* . ,*error-output*)) ))
-    (unless class
-      (error "Unknown mode ~A" mode))
-    (let ((transport (apply #'make-instance class
-                            :message-callback
-                            (lambda (message)
-                              (dispatch client message))
-                            initargs)))
-      (setf (jsonrpc-transport client) transport)
-
-      (on :open transport
-          (lambda (connection)
-            (emit :open client connection)))
-
-      (start-client transport)))
+(defun client-connect (client &rest initargs)
+  (start-client (apply #'prepare client initargs))
   client)
 
 (defun client-disconnect (client)

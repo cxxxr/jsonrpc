@@ -22,10 +22,13 @@
   (:import-from #:websocket-driver)
   (:import-from #:clack)
   (:import-from #:clack.handler.hunchentoot)
+  (:import-from #:lack.component
+                #:lack-component
+                #:to-app)
   (:export #:websocket-transport))
 (in-package #:jsonrpc/transport/websocket)
 
-(defclass websocket-transport (transport)
+(defclass websocket-transport (transport lack-component)
   ((host :accessor websocket-transport-host
          :initarg :host
          :initform "127.0.0.1")
@@ -50,48 +53,51 @@
       (setf (websocket-transport-port transport) (quri:uri-port uri))))
   transport)
 
+(defmethod to-app ((transport transport))
+  (lambda (env)
+    (block nil
+      ;; Return 200 OK for non-WebSocket requests
+      (unless (wsd:websocket-p env)
+        (return '(200 () ("ok"))))
+      (let* ((ws (wsd:make-server env))
+             (connection (make-instance 'connection
+                                        :socket ws
+                                        :request-callback
+                                        (transport-message-callback transport))))
+
+        (on :message ws
+            (lambda (input)
+              (let ((message (handler-case (parse-message input)
+                               (jsonrpc-error ()
+                                 ;; Nothing can be done
+                                 nil))))
+                (when message
+                  (add-message-to-queue connection message)))))
+
+        (on :open ws
+            (lambda ()
+              (emit :open transport connection)))
+
+        (on :close ws
+            (lambda (&key code reason)
+              (declare (ignore code reason))
+              (emit :close connection)))
+
+        (lambda (responder)
+          (declare (ignore responder))
+          (let ((thread
+                  (bt:make-thread
+                   (lambda ()
+                     (run-processing-loop transport connection))
+                   :name "jsonrpc/transport/websocket processing")))
+            (unwind-protect
+                 (wsd:start-connection ws)
+              (bt:destroy-thread thread))))))))
+
 (defmethod start-server ((transport websocket-transport))
   (setf (transport-connection transport)
         (clack:clackup
-         (lambda (env)
-           (block nil
-             ;; Return 200 OK for non-WebSocket requests
-             (unless (wsd:websocket-p env)
-               (return '(200 () ("ok"))))
-             (let* ((ws (wsd:make-server env))
-                    (connection (make-instance 'connection
-                                               :socket ws
-                                               :request-callback
-                                               (transport-message-callback transport))))
-
-               (on :message ws
-                   (lambda (input)
-                     (let ((message (handler-case (parse-message input)
-                                      (jsonrpc-error ()
-                                        ;; Nothing can be done
-                                        nil))))
-                       (when message
-                         (add-message-to-queue connection message)))))
-
-               (on :open ws
-                   (lambda ()
-                     (emit :open transport connection)))
-
-               (on :close ws
-                   (lambda (&key code reason)
-                     (declare (ignore code reason))
-                     (emit :close connection)))
-
-               (lambda (responder)
-                 (declare (ignore responder))
-                 (let ((thread
-                         (bt:make-thread
-                          (lambda ()
-                            (run-processing-loop transport connection))
-                          :name "jsonrpc/transport/websocket processing")))
-                   (unwind-protect
-                        (wsd:start-connection ws)
-                     (bt:destroy-thread thread)))))))
+         (to-app transport)
          :host (websocket-transport-host transport)
          :port (websocket-transport-port transport)
          :server :hunchentoot

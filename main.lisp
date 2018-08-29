@@ -29,6 +29,7 @@
    #:*default-timeout*
    #:server
    #:client
+   #:prepare
    #:server-listen
    #:client-connect
    #:client-disconnect
