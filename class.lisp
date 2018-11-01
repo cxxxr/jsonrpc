@@ -174,57 +174,36 @@
 
     (values)))
 
-(defvar *call-to-result* (make-hash-table :test 'eq))
-(defvar *call-to-error* (make-hash-table :test 'eq))
-
 (defun hash-exists-p (hash-table key)
   (nth-value 1 (gethash key hash-table)))
 
 (defun call-to (from to method &optional params &rest options)
   (destructuring-bind (&key (timeout *default-timeout*)) options
-    (let ((condvar (bt:make-condition-variable))
-          (condlock (bt:make-lock))
-          (readylock (bt:make-lock)))
-      (bt:acquire-lock readylock)
+    (let* ((sem (bt:make-semaphore))
+           (no-result (gensym))
+           (result no-result)
+           (error no-result))
       (call-async-to from to
                      method
                      params
                      (lambda (res)
-                       (bt:with-lock-held (readylock)
-                         (bt:with-lock-held (condlock)
-                           (setf (gethash readylock *call-to-result*) res)
-                           (bt:condition-notify condvar))))
+                       (setf result res)
+                       (bt:signal-semaphore sem))
                      (lambda (message code)
-                       (bt:with-lock-held (readylock)
-                         (bt:with-lock-held (condlock)
-                           (setf (gethash readylock *call-to-error*)
-                                 (make-condition 'jsonrpc-callback-error
-                                                 :message message
-                                                 :code code))
-                           (bt:condition-notify condvar)))))
-      (bt:with-lock-held (condlock)
-        (bt:release-lock readylock)
-        (unless (bt:condition-wait condvar condlock :timeout timeout)
-          (error "JSON-RPC synchronous call has been timeout")))
+                       (setf result
+                             (make-condition 'jsonrpc-callback-error
+                                             :message message
+                                             :code code))
+                       (bt:signal-semaphore sem)))
+      (unless (bt:wait-on-semaphore sem
+                                           :timeout timeout)
+        (error "JSON-RPC synchronous call has been timeout"))
 
-      ;; XXX: Strangely enough, there's sometimes no results/errors here on SBCL.
-      #+(and sbcl linux)
-      (loop repeat 5
-            until (or (hash-exists-p *call-to-result* readylock)
-                      (hash-exists-p *call-to-error* readylock))
-            do (sleep 0.1))
-
-      (multiple-value-bind (error error-exists-p)
-          (gethash readylock *call-to-error*)
-        (multiple-value-bind (result result-exists-p)
-            (gethash readylock *call-to-result*)
-          (assert (or error-exists-p
-                      result-exists-p))
-          (remhash readylock *call-to-error*)
-          (remhash readylock *call-to-result*)
-          (if error
-              (error error)
-              result))))))
+      (assert (not (and (eq result no-result)
+                        (eq error no-result))))
+      (if (eq result no-result)
+          (error error)
+          result))))
 
 (defun notify-to (from to method &optional params)
   (check-type params jsonrpc-params)
