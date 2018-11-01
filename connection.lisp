@@ -34,19 +34,15 @@
 (defvar *connection*)
 
 (defclass process-wait ()
-  ((condvar :initform (bt:make-condition-variable))
-   (condlock :initform (bt:make-recursive-lock))))
+  ((sem :initform (bt:make-semaphore))))
 
 (defgeneric wait-for-ready (process-wait)
   (:method ((process-wait process-wait))
-    (bt:with-recursive-lock-held ((slot-value process-wait 'condlock))
-      (bt:condition-wait (slot-value process-wait 'condvar)
-                         (slot-value process-wait 'condlock)))))
+    (bt:wait-on-semaphore (slot-value process-wait 'sem))))
 
 (defgeneric notify-ready (process-wait)
   (:method ((process-wait process-wait))
-    (bt:with-recursive-lock-held ((slot-value process-wait 'condlock))
-      (bt:condition-notify (slot-value process-wait 'condvar)))))
+    (bt:signal-semaphore (slot-value process-wait 'sem))))
 
 (defclass connection (event-emitter process-wait)
   ((socket :initarg :socket
