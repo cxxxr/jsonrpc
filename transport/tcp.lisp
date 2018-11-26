@@ -181,7 +181,9 @@
                     (go read-header-value)
                else if (= byte 0)
                       do (go eof)
-               else
+  	       else if (= byte (char-code #\Return))
+	              do (go read-lf)
+	       else
                  do (fast-write-byte byte buffer)))
 
      read-header-value
