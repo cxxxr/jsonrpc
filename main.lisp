@@ -57,6 +57,7 @@
    #:jsonrpc-server-error
    #:jsonrpc-error-code
    #:jsonrpc-error-message
+   #:*debug-on-error*
 
    ;; from this package
    #:make-server

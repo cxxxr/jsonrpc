@@ -60,7 +60,11 @@
         (handler-bind ((error
                          (lambda (e)
                            (unless (typep e 'jsonrpc-error)
-                             (dissect:present e)))))
+                             (cond
+                               (*debug-on-error*
+                                (invoke-debugger e))
+                               (t
+                                (dissect:present e)))))))
           (call-next-method))
       (jsonrpc-error (e)
         (when (request-id request)

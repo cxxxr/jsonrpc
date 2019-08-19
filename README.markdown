@@ -28,6 +28,8 @@ JSON-RPC 2.0 server/client for Common Lisp.
 ;=> 30
 ```
 
+To invoke an interactive debugger on any errors in your handlers, set `jsonrpc:*debug-on-error*` to `t`.
+
 ## Experimental features (only for Server)
 
 - broadcast

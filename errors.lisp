@@ -12,8 +12,12 @@
            #:jsonrpc-server-error
            #:jsonrpc-callback-error
            #:jsonrpc-error-code
-           #:jsonrpc-error-message))
+           #:jsonrpc-error-message
+           #:*debug-on-error*))
 (in-package #:jsonrpc/errors)
+
+(defvar *debug-on-error* nil
+  "Open an interactive debugger on any error.")
 
 (define-condition jsonrpc-error (error)
   ((code :initarg :code
