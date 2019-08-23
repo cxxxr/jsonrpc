@@ -129,18 +129,19 @@
       connection)))
 
 (defmethod send-message-using-transport ((transport tcp-transport) connection message)
-  (let ((json (with-output-to-string (s)
-                (yason:encode message s)))
-        (stream (connection-socket connection)))
+  (let* ((json (with-output-to-string (s)
+                 (yason:encode message s)))
+         (body (string-to-utf-8-bytes json))
+         (stream (connection-socket connection)))
     (write-sequence
      (string-to-utf-8-bytes
       (format nil
-              "Content-Length: ~A~C~C~:*~:*~C~C~A"
-              (length json)
+              "Content-Length: ~A~C~C~:*~:*~C~C"
+              (length body)
               #\Return
-              #\Newline
-              json))
+              #\Newline))
      stream)
+    (write-sequence body stream)
     (force-output stream)))
 
 (defmethod receive-message-using-transport ((transport tcp-transport) connection)
