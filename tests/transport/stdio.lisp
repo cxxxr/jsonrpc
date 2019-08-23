@@ -3,6 +3,8 @@
   (:use #:cl
         #:rove
         #:jsonrpc)
+  (:shadowing-import-from #:rove
+                          #:*debug-on-error*)
   (:import-from #:jsonrpc/transport/stdio)
   (:import-from #:bordeaux-threads))
 (in-package #:jsonrpc/tests/transport/stdio)

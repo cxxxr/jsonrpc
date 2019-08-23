@@ -3,7 +3,9 @@
   (:use #:cl
         #:rove
         #:jsonrpc/request-response
-        #:jsonrpc/errors))
+        #:jsonrpc/errors)
+  (:shadowing-import-from #:rove
+                          #:*debug-on-error*))
 (in-package #:jsonrpc/tests/request-response)
 
 (deftest parse-message-test
