@@ -86,6 +86,7 @@
                        (unwind-protect
                             (run-reading-loop transport connection)
                          (finish-output (connection-socket connection))
+                         (usocket:socket-close socket)
                          (bt:destroy-thread thread)
                          (emit :close connection))))
                    :name "jsonrpc/transport/tcp reading")
