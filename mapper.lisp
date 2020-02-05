@@ -46,7 +46,7 @@
                                        (declare (ignore e))
                                        (error 'jsonrpc-invalid-params)))
                                    #+sbcl
-                                   (sb-int::simple-program-error
+                                   (sb-int:simple-program-error
                                      (lambda (e)
                                        (let ((message (simple-condition-format-control e)))
                                          (when (equal message "invalid number of arguments: ~S")
