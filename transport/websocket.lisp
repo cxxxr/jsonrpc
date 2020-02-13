@@ -32,6 +32,9 @@
    (port :accessor websocket-transport-port
          :initarg :port
          :initform (random-port))
+   (path :accessor websocket-transport-path
+         :initarg :path
+         :initform "/")
    (securep :accessor websocket-transport-secure-p
             :initarg :securep
             :initform nil)
@@ -47,7 +50,8 @@
       (setf (websocket-transport-secure-p transport)
             (equalp (quri:uri-scheme uri) "wss"))
       (setf (websocket-transport-host transport) (quri:uri-host uri))
-      (setf (websocket-transport-port transport) (quri:uri-port uri))))
+      (setf (websocket-transport-port transport) (quri:uri-port uri))
+      (setf (websocket-transport-path transport) (or (quri:uri-path uri) "/"))))
   transport)
 
 (defmethod start-server ((transport websocket-transport))
@@ -99,12 +103,13 @@
          :use-thread nil)))
 
 (defmethod start-client ((transport websocket-transport))
-  (let* ((client (wsd:make-client (format nil "~A://~A:~A/"
+  (let* ((client (wsd:make-client (format nil "~A://~A:~A~A"
                                           (if (websocket-transport-secure-p transport)
                                               "wss"
                                               "ws")
                                           (websocket-transport-host transport)
-                                          (websocket-transport-port transport))))
+                                          (websocket-transport-port transport)
+                                          (websocket-transport-path transport))))
          (connection (make-instance 'connection
                                     :socket client
                                     :request-callback

@@ -24,8 +24,13 @@
         if (port-available-p port)
           return port))
 
-(defun make-id (&optional (length 12))
+(defvar *id* 0)
+(defun make-id (&key (id-type :string) (length 12))
   (declare (type fixnum length))
+  (check-type id-type (member :string :number))
+
+  (when (eql :number id-type) (return-from make-id (incf *id*)))
+
   (let ((result (make-string length)))
     (declare (type simple-string result))
     (dotimes (i length result)

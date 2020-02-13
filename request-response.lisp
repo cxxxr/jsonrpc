@@ -24,8 +24,13 @@
            #:response-error-code
            #:response-result
            #:response-id
-           #:parse-message))
+           #:parse-message
+           #:*response-need-jsonrpc-p*))
 (in-package #:jsonrpc/request-response)
+
+;; chrome devtools api is not jsonrpc2.0 compliant.
+;; It respond without "jsonrpc" field.
+(defvar *response-need-jsonrpc-p* t)
 
 (defstruct request
   method
@@ -67,7 +72,9 @@
               (hash-table-keys request))))
 
 (defun valid-response-p (response)
-  (and (equal (gethash "jsonrpc" response) "2.0")
+  (and (if *response-need-jsonrpc-p*
+           (equal (gethash "jsonrpc" response) "2.0")
+         t)
        (typep (gethash "error" response)
               '(or null hash-table))
        (typep (gethash "id" response)

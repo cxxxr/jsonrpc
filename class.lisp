@@ -39,6 +39,7 @@
   (:import-from #:alexandria
                 #:remove-from-plist)
   (:export #:*default-timeout*
+           #:*default-id-type*
            #:client
            #:server
            #:jsonrpc-transport
@@ -63,6 +64,7 @@
 (in-package #:jsonrpc/class)
 
 (defvar *default-timeout* 60)
+(defvar *default-id-type* :string)
 
 (defclass jsonrpc (event-emitter exposable)
   ((transport :type (or null transport)
@@ -154,7 +156,7 @@
 
 (defun call-async-to (from to method &optional params callback error-callback)
   (check-type params jsonrpc-params)
-  (let ((id (make-id)))
+  (let ((id (make-id :id-type *default-id-type*)))
     (set-callback-for-id to
                          id
                          (lambda (response)

@@ -19,6 +19,7 @@
    #:response-result
    #:response-id
    #:parse-message
+   #:*response-need-jsonrpc-p*
 
    ;; from transports
    #:transport
@@ -27,6 +28,7 @@
 
    ;; from class
    #:*default-timeout*
+   #:*default-id-type*
    #:server
    #:client
    #:server-listen
