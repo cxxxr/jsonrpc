@@ -64,6 +64,13 @@
    (outbox :initform (make-instance 'chanl:unbounded-channel)
            :accessor connection-outbox)))
 
+(defmethod wait-for-ready ((connection connection))
+  (bt:with-recursive-lock-held ((slot-value connection 'condlock))
+    (when (and (chanl:recv-blocks-p (slot-value connection 'request-queue))
+               (chanl:recv-blocks-p (slot-value connection 'outbox)))
+      (bt:condition-wait (slot-value connection 'condvar)
+                         (slot-value connection 'condlock)))))
+
 (defgeneric add-message-to-queue (connection message)
   ;; batch
   (:method ((connection connection) (messages list))
