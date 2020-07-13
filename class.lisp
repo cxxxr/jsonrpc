@@ -25,7 +25,8 @@
                 #:response-error-message
                 #:response-result)
   (:import-from #:jsonrpc/errors
-                #:jsonrpc-callback-error)
+                #:jsonrpc-callback-error
+                #:jsonrpc-timeout)
   (:import-from #:jsonrpc/utils
                 #:find-mode-class
                 #:make-id)
@@ -38,6 +39,10 @@
                 #:event-emitter)
   (:import-from #:alexandria
                 #:remove-from-plist)
+  (:import-from #:chanl)
+  (:import-from #:trivial-timeout
+                #:with-timeout
+                #:timeout-error)
   (:export #:*default-timeout*
            #:client
            #:server
@@ -174,57 +179,26 @@
 
     (values)))
 
-(defvar *call-to-result* (make-hash-table :test 'eq))
-(defvar *call-to-error* (make-hash-table :test 'eq))
-
-(defun hash-exists-p (hash-table key)
-  (nth-value 1 (gethash key hash-table)))
-
 (defun call-to (from to method &optional params &rest options)
   (destructuring-bind (&key (timeout *default-timeout*)) options
-    (let ((condvar (bt:make-condition-variable))
-          (condlock (bt:make-lock))
-          (readylock (bt:make-lock)))
-      (bt:acquire-lock readylock)
+    (let ((channel (make-instance 'chanl:unbounded-channel)))
       (call-async-to from to
                      method
                      params
                      (lambda (res)
-                       (bt:with-lock-held (readylock)
-                         (bt:with-lock-held (condlock)
-                           (setf (gethash readylock *call-to-result*) res)
-                           (bt:condition-notify condvar))))
+                       (chanl:send channel res))
                      (lambda (message code)
-                       (bt:with-lock-held (readylock)
-                         (bt:with-lock-held (condlock)
-                           (setf (gethash readylock *call-to-error*)
-                                 (make-condition 'jsonrpc-callback-error
-                                                 :message message
-                                                 :code code))
-                           (bt:condition-notify condvar)))))
-      (bt:with-lock-held (condlock)
-        (bt:release-lock readylock)
-        (unless (bt:condition-wait condvar condlock :timeout timeout)
-          (error "JSON-RPC synchronous call has been timeout")))
-
-      ;; XXX: Strangely enough, there's sometimes no results/errors here on SBCL.
-      #+(and sbcl linux)
-      (loop repeat 5
-            until (or (hash-exists-p *call-to-result* readylock)
-                      (hash-exists-p *call-to-error* readylock))
-            do (sleep 0.1))
-
-      (multiple-value-bind (error error-exists-p)
-          (gethash readylock *call-to-error*)
-        (multiple-value-bind (result result-exists-p)
-            (gethash readylock *call-to-result*)
-          (assert (or error-exists-p
-                      result-exists-p))
-          (remhash readylock *call-to-error*)
-          (remhash readylock *call-to-result*)
-          (if error
-              (error error)
-              result))))))
+                       (chanl:send channel (make-condition 'jsonrpc-callback-error
+                                                           :message message
+                                                           :code code))))
+      (let ((result (handler-case (with-timeout (timeout)
+                                    (chanl:recv channel))
+                      (timeout-error (e)
+                        (error 'jsonrpc-timeout
+                               :message "JSON-RPC synchronous call has been timeout")))))
+        (if (typep result 'error)
+            (error result)
+            result)))))
 
 (defun notify-to (from to method &optional params)
   (check-type params jsonrpc-params)
