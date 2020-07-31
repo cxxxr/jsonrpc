@@ -78,7 +78,7 @@
 (defun ensure-connected (jsonrpc)
   (check-type jsonrpc jsonrpc)
   (unless (jsonrpc-transport jsonrpc)
-    (error "Connection isn't established yet for ~A" jsonrpc)))
+    (error 'jsonrpc-error :message (format nil "Connection isn't established yet for ~A" jsonrpc))))
 
 (defclass client (jsonrpc) ())
 
@@ -93,7 +93,7 @@
          (bt:*default-special-bindings* `((*standard-output* . ,*standard-output*)
                                           (*error-output* . ,*error-output*)) ))
     (unless class
-      (error "Unknown mode ~A" mode))
+      (error 'jsonrpc-error :message (format nil "Unknown mode ~A" mode)))
     (let ((transport (apply #'make-instance class
                             :message-callback
                             (lambda (message)
@@ -122,7 +122,7 @@
          (bt:*default-special-bindings* `((*standard-output* . ,*standard-output*)
                                           (*error-output* . ,*error-output*)) ))
     (unless class
-      (error "Unknown mode ~A" mode))
+      (error 'jsonrpc-error :message (format nil "Unknown mode ~A" mode)))
     (let ((transport (apply #'make-instance class
                             :message-callback
                             (lambda (message)
@@ -222,7 +222,7 @@
                    error-callback))
   (:method ((server server) method &optional params callback error-callback)
     (unless (boundp '*connection*)
-      (error "`call' is called outside of handlers."))
+      (error 'jsonrpc-error :message "`call' is called outside of handlers."))
     (call-async-to server *connection* method params callback error-callback)))
 
 (defgeneric notify (jsonrpc method &optional params)
@@ -232,7 +232,7 @@
                method params))
   (:method ((server server) method &optional params)
     (unless (boundp '*connection*)
-      (error "`notify' is called outside of handlers."))
+      (error 'jsonrpc-error :message "`notify' is called outside of handlers."))
     (notify-to server *connection*
                method params)))
 
@@ -245,7 +245,7 @@
                                   :params params))))
   (:method ((server server) method &optional params)
     (unless (boundp '*connection*)
-      (error "`notify-async' is called outside of handlers."))
+      (error 'jsonrpc-error :message "`notify-async' is called outside of handlers."))
     (send-message server *connection*
                   (make-request :method method
                                 :params params))))
