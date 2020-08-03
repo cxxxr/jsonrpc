@@ -28,10 +28,10 @@
                 #:jsonrpc-callback-error)
   (:import-from #:jsonrpc/utils
                 #:find-mode-class
-                #:make-id)
+                #:make-id
+                #:destroy-thread*)
   (:import-from #:bordeaux-threads
-                #:*default-special-bindings*
-                #:destroy-thread)
+                #:*default-special-bindings*)
   (:import-from #:event-emitter
                 #:on
                 #:emit
@@ -135,7 +135,7 @@
 (defun client-disconnect (client)
   (ensure-connected client)
   (let ((transport (jsonrpc-transport client)))
-    (mapc #'bt:destroy-thread (transport-threads transport))
+    (mapc #'destroy-thread* (transport-threads transport))
     (setf (transport-threads transport) '())
     (setf (transport-connection transport) nil))
   (emit :close client)

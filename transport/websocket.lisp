@@ -12,8 +12,7 @@
   (:import-from #:jsonrpc/errors
                 #:jsonrpc-error)
   (:import-from #:bordeaux-threads
-                #:make-thread
-                #:destroy-thread)
+                #:make-thread)
   (:import-from #:event-emitter
                 #:on
                 #:emit)

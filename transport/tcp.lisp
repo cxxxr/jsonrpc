@@ -13,8 +13,7 @@
   (:import-from #:quri)
   (:import-from #:yason)
   (:import-from #:bordeaux-threads
-                #:make-thread
-                #:destroy-thread)
+                #:make-thread)
   (:import-from #:fast-io
                 #:make-output-buffer
                 #:finish-output-buffer
@@ -87,11 +86,11 @@
                             (run-reading-loop transport connection)
                          (finish-output (connection-socket connection))
                          (usocket:socket-close socket)
-                         (bt:destroy-thread thread)
+                         (destroy-thread* thread)
                          (emit :close connection))))
                    :name "jsonrpc/transport/tcp reading")
                   client-threads))))
-        (mapc #'bt:destroy-thread client-threads)))))
+        (mapc #'destroy-thread* client-threads)))))
 
 (defmethod start-client ((transport tcp-transport))
   (let ((stream (usocket:socket-stream
