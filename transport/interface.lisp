@@ -54,9 +54,9 @@
                  (when response
                    (add-message-to-outbox connection response))))
               ((chanl:recv outbox message)
-               (send-message-using-transport transport connection message)))
-          ;; Broken pipe.
-          (stream-error ()))))))
+               (send-message-using-transport transport connection message))))
+        ;; Broken pipe or "something bad happened" from chanl
+        ((or stream-error #+ccl simple-error) ())))))
 
 (defgeneric run-reading-loop (transport connection)
   (:method ((transport transport) connection)
