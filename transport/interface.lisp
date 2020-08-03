@@ -57,6 +57,8 @@
 
 (defgeneric run-reading-loop (transport connection)
   (:method ((transport transport) connection)
-    (loop for message = (receive-message-using-transport transport connection)
-          while message
-          do (add-message-to-queue connection message))))
+    (handler-case
+        (loop for message = (receive-message-using-transport transport connection)
+              while message
+              do (add-message-to-queue connection message))
+      (end-of-file ()))))
