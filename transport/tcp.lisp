@@ -45,7 +45,7 @@
   (when url
     (let ((uri (quri:uri url)))
       (unless (quri:uri-http-p uri)
-        (error "Only http or https are supported for tcp-transport (specified ~S)" (quri:uri-scheme uri)))
+        (error 'jsonrpc-error :message (format nil "Only http or https are supported for tcp-transport (specified ~S)" (quri:uri-scheme uri))))
       (setf (tcp-transport-secure-p transport)
             (equalp (quri:uri-scheme uri) "https"))
       (setf (tcp-transport-host transport) (quri:uri-host uri))

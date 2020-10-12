@@ -9,6 +9,7 @@
            #:jsonrpc-method-not-found
            #:jsonrpc-invalid-params
            #:jsonrpc-internal-error
+           #:jsonrpc-timeout
            #:jsonrpc-server-error
            #:jsonrpc-callback-error
            #:jsonrpc-error-code
@@ -50,6 +51,10 @@
 (define-condition jsonrpc-internal-error (jsonrpc-error)
   ((code :initform -32603)
    (message :initform "Internal error")))
+
+(define-condition jsonrpc-timeout (jsonrpc-error)
+  ((code :initform -32604)
+   (message :initform "Timeout")))
 
 (define-condition jsonrpc-server-error (jsonrpc-error) ())
 

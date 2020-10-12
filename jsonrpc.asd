@@ -13,6 +13,7 @@
   :class :package-inferred-system
   :depends-on ("rove"
                "jsonrpc/tests/request-response"
+               "jsonrpc/tests/class"
                "jsonrpc/tests/transport/tcp"
                "jsonrpc/tests/transport/stdio"
                "jsonrpc/tests/transport/websocket")

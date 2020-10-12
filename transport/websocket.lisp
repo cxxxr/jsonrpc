@@ -43,7 +43,7 @@
   (when url
     (let ((uri (quri:uri url)))
       (unless (member (quri:uri-scheme uri) '("ws" "wss") :test #'equalp)
-        (error "Only ws or wss are supported for websocket-transport (specified ~S)" (quri:uri-scheme uri)))
+        (error 'jsonrpc-error :message (format nil "Only ws or wss are supported for websocket-transport (specified ~S)" (quri:uri-scheme uri))))
       (setf (websocket-transport-secure-p transport)
             (equalp (quri:uri-scheme uri) "wss"))
       (setf (websocket-transport-host transport) (quri:uri-host uri))
@@ -147,4 +147,4 @@
     (wsd:send ws json)))
 
 (defmethod receive-message-using-transport ((transport websocket-transport) connection)
-  (error "Not allowed to receive synchronously with WebSocket transport."))
+  (error 'jsonrpc-error :message "Not allowed to receive synchronously with WebSocket transport."))
