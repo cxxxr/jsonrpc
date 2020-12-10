@@ -47,6 +47,7 @@
            #:clear-methods
            #:dispatch
            #:server-listen
+           #:client-connect-using-class
            #:client-connect
            #:client-disconnect
            #:send-message
@@ -111,13 +112,10 @@
       (start-server transport)))
   server)
 
-(defun client-connect (client &rest initargs &key mode &allow-other-keys)
-  (let* ((class (find-mode-class mode))
-         (initargs (remove-from-plist initargs :mode))
+(defun client-connect-using-class (client class &rest initargs)
+  (let* ((initargs (remove-from-plist initargs :mode))
          (bt:*default-special-bindings* `((*standard-output* . ,*standard-output*)
                                           (*error-output* . ,*error-output*)) ))
-    (unless class
-      (error "Unknown mode ~A" mode))
     (let ((transport (apply #'make-instance class
                             :message-callback
                             (lambda (message)
@@ -131,6 +129,12 @@
 
       (start-client transport)))
   client)
+
+(defun client-connect (client &rest initargs &key mode &allow-other-keys)
+  (let ((class (find-mode-class mode)))
+    (unless class
+      (error "Unknown mode ~A" mode))
+    (apply #'client-connect-using-class client class initargs)))
 
 (defun client-disconnect (client)
   (ensure-connected client)
