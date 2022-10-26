@@ -8,6 +8,7 @@
                 #:clear-methods
                 #:dispatch)
   (:import-from #:jsonrpc/transport/interface
+                #:transport-message-callback
                 #:transport
                 #:transport-connection
                 #:transport-threads
@@ -15,6 +16,7 @@
                 #:start-client
                 #:receive-message-using-transport)
   (:import-from #:jsonrpc/connection
+                #:connection
                 #:*connection*
                 #:set-callback-for-id
                 #:add-message-to-outbox)
@@ -60,7 +62,8 @@
            #:notify
            #:notify-async
            #:broadcast
-           #:multicall-async))
+           #:multicall-async
+           #:bind-server-to-transport))
 (in-package #:jsonrpc/class)
 
 (defvar *default-timeout* 60)
@@ -83,6 +86,31 @@
                        :accessor server-client-connections)
    (%lock :initform (bt:make-lock "client-connections-lock"))))
 
+
+(defun bind-server-to-transport (server transport)
+  "Initializes all necessary event handlers inside TRANSPORT to process calls to the SERVER.
+
+   This function can be usefule if you want to create server and transport instance manually,
+   and then to start transport as part of a bigger server."
+  (setf (jsonrpc-transport server) transport)
+
+  (setf (transport-message-callback transport)
+        (lambda (message)
+          (dispatch server message)))
+  
+  (on :open transport
+      (lambda (connection)
+        (with-slots (%lock client-connections) server
+          (on :close connection
+              (lambda ()
+                (bt:with-lock-held (%lock)
+                  (setf client-connections
+                        (delete connection client-connections)))))
+          (bt:with-lock-held (%lock)
+            (push connection client-connections)))
+        (emit :open server connection))))
+
+
 (defun server-listen (server &rest initargs &key mode &allow-other-keys)
   (let* ((class (find-mode-class mode))
          (initargs (remove-from-plist initargs :mode))
@@ -91,24 +119,8 @@
     (unless class
       (error "Unknown mode ~A" mode))
     (let ((transport (apply #'make-instance class
-                            :message-callback
-                            (lambda (message)
-                              (dispatch server message))
                             initargs)))
-      (setf (jsonrpc-transport server) transport)
-
-      (on :open transport
-          (lambda (connection)
-            (with-slots (%lock client-connections) server
-              (on :close connection
-                  (lambda ()
-                    (bt:with-lock-held (%lock)
-                      (setf client-connections
-                            (delete connection client-connections)))))
-              (bt:with-lock-held (%lock)
-                (push connection client-connections)))
-            (emit :open server connection)))
-
+      (bind-server-to-transport server transport)
       (start-server transport)))
   server)
 
@@ -184,7 +196,12 @@
 (defun hash-exists-p (hash-table key)
   (nth-value 1 (gethash key hash-table)))
 
-(defun call-to (from to method &optional params &rest options)
+
+(defgeneric call-to (from-client to-connection method &optional params &rest options)
+  (:documentation "Makes a synchronouse RPC call. Should return an instance of JSONRPC/REQUEST-RESPONSE:RESPONSE class."))
+
+
+(defmethod call-to ((from jsonrpc) (to connection) (method string) &optional params &rest options)
   (destructuring-bind (&key (timeout *default-timeout*)) options
     (let ((condvar (bt:make-condition-variable))
           (condlock (bt:make-lock))
@@ -284,7 +301,7 @@
 (defgeneric broadcast (jsonrpc method &optional params)
   (:method ((server server) method &optional params)
     (dolist (conn (server-client-connections server))
-      (notify server conn method params))))
+      (notify-to server conn method params))))
 
 ;; Experimental
 (defgeneric multicall-async (jsonrpc method &optional params callback error-callback)
