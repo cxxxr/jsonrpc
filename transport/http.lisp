@@ -42,13 +42,30 @@
   ((url :accessor http-transport-url
         :initarg :url
         :initform nil)
-   (debug :initarg :debug
-          :initform t)))
+   (headers :initarg :headers
+            :initform nil
+            :type list
+            :documentation "Alist with additional HTTP headers to be sent in each request. Use it to add Authorization header, for example."
+            :reader http-transport-headers))
+  (:documentation "This transport allows to access API via HTTP requests.
+
+Here is example, how to setup connection when you need to pass authorization header:
+
+    (defun connect (client &optional token)
+      (jsonrpc:client-connect client :mode :http :url \"http://localhost:8001/\"
+                                     :headers (when token
+                                                (list (cons :authorization
+                                                            token))))
+      (values client))
+
+"))
 
 
 (defclass http-connection ()
-  ((url :reader connection-url
-        :initarg :url)))
+  ((url :initarg :url
+        :reader connection-url)
+   (headers :initarg :headers
+            :reader connection-headers)))
 
 
 (defun make-error-response (code message &key (http-code 500))
@@ -128,21 +145,40 @@
 
 (defmethod start-client ((transport http-transport))
   (let ((connection (make-instance 'http-connection
-                                   :url (http-transport-url transport))))
+                                   :url (http-transport-url transport)
+                                   :headers (http-transport-headers transport))))
     (setf (transport-connection transport)
           connection)))
 
 
+(defun merge-headers (&rest header-alists)
+  (loop with result = nil
+        for headers in header-alists
+        do (loop for (key . value) in headers
+                 unless (assoc key result :test #'string-equal)
+                   do (push (cons key value)
+                            result))
+        finally (return result)))
+
+
 (defmethod jsonrpc:call-to ((from client) (to http-connection) (method string) &optional params &rest options)
-  (destructuring-bind (&key (timeout *default-timeout*)) options
+  "It is possible to pass HTTP headers for this one call by giving an alist as :headers keyword argument."
+  (destructuring-bind (&key
+                         (timeout *default-timeout*)
+                         (headers nil)) options
     (let* ((request (make-request :id (make-id)
                                   :method method
                                   :params params))
+           (request-headers (merge-headers
+                             (list (cons :content-type "application/json"))
+                             (connection-headers to)
+                             ;; Here we allow to redefine connection headers for single call
+                             headers))
            (json (with-output-to-string (s)
                    (yason:encode request s)))
            (raw-response (dex:post (connection-url to)
                                    :content json
-                                   :headers (list (cons :content-type "application/json"))
+                                   :headers request-headers
                                    :connect-timeout timeout
                                    :read-timeout timeout))
            (response (parse-message raw-response)))
