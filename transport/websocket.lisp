@@ -22,7 +22,8 @@
   (:import-from #:websocket-driver)
   (:import-from #:clack)
   (:import-from #:clack.handler.hunchentoot)
-  (:export #:websocket-transport))
+  (:export #:websocket-transport
+           #:make-clack-app))
 (in-package #:jsonrpc/transport/websocket)
 
 (defclass websocket-transport (transport)
@@ -54,10 +55,9 @@
       (setf (websocket-transport-path transport) (quri:uri-path uri))))
   transport)
 
-(defmethod start-server ((transport websocket-transport))
-  (setf (transport-connection transport)
-        (clack:clackup
-         (lambda (env)
+
+(defun make-clack-app (transport)
+  (flet ((json-rpc-websocket-app (env)
            (block nil
              ;; Return 200 OK for non-WebSocket requests
              (unless (wsd:websocket-p env)
@@ -95,7 +95,14 @@
                           :name "jsonrpc/transport/websocket processing")))
                    (unwind-protect
                         (wsd:start-connection ws)
-                     (bt:destroy-thread thread)))))))
+                     (bt:destroy-thread thread))))))))
+    #'json-rpc-websocket-app))
+
+
+(defmethod start-server ((transport websocket-transport))
+  (setf (transport-connection transport)
+        (clack:clackup
+         (make-clack-app transport)
          :host (websocket-transport-host transport)
          :port (websocket-transport-port transport)
          :server :hunchentoot

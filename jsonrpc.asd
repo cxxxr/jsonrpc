@@ -8,6 +8,8 @@
   :in-order-to ((test-op (test-op "jsonrpc/tests"))))
 
 (asdf:register-system-packages "clack-handler-hunchentoot" '(#:clack.handler.hunchentoot))
+(asdf:register-system-packages "lack-request" '(#:lack.request))
+(asdf:register-system-packages "http-body" '(#:http-body.util))
 
 (defsystem "jsonrpc/tests"
   :class :package-inferred-system

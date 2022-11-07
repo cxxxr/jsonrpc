@@ -79,7 +79,9 @@
               (hash-table-keys response))))
 
 (defun parse-message (input)
-  (when (< 0 (length input))
+  (when (or (and (typep input 'string)
+                 (< 0 (length input)))
+            (typep input 'stream))
     (let ((message (handler-case (yason:parse input)
                      (error () (error 'jsonrpc-parse-error)))))
       (flet ((make-message (hash)

@@ -2,6 +2,7 @@
 (defpackage #:jsonrpc/mapper
   (:use #:cl
         #:jsonrpc/errors)
+  (:import-from #:dissect)
   (:import-from #:jsonrpc/request-response
                 #:request
                 #:request-method
