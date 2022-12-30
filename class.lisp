@@ -115,7 +115,8 @@
   (let* ((class (find-mode-class mode))
          (initargs (remove-from-plist initargs :mode))
          (bt:*default-special-bindings* `((*standard-output* . ,*standard-output*)
-                                          (*error-output* . ,*error-output*)) ))
+                                          (*error-output* . ,*error-output*)
+                                          ,@bt:*default-special-bindings*)))
     (unless class
       (error "Unknown mode ~A" mode))
     (let ((transport (apply #'make-instance class
@@ -127,7 +128,8 @@
 (defun client-connect-using-class (client class &rest initargs)
   (let* ((initargs (remove-from-plist initargs :mode))
          (bt:*default-special-bindings* `((*standard-output* . ,*standard-output*)
-                                          (*error-output* . ,*error-output*)) ))
+                                          (*error-output* . ,*error-output*)
+                                          ,@bt:*default-special-bindings*)))
     (let ((transport (apply #'make-instance class
                             :message-callback
                             (lambda (message)
