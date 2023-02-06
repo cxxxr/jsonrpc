@@ -57,7 +57,6 @@
                                         (tcp-transport-port transport)
                                         :reuse-address t
                                         :element-type '(unsigned-byte 8))
-    (setf (transport-connection transport) server)
     (let ((callback (transport-message-callback transport))
           (client-threads '())
           (bt:*default-special-bindings* (append bt:*default-special-bindings*
@@ -71,6 +70,7 @@
                       (connection (make-instance 'connection
                                                  :socket (usocket:socket-stream socket)
                                                  :request-callback callback)))
+                 (setf (transport-connection transport) connection)
                  (emit :open transport connection)
                  (push
                   (bt:make-thread
