@@ -164,8 +164,9 @@ Here is example, how to setup connection when you need to pass authorization hea
 (defmethod jsonrpc:call-to ((from client) (to http-connection) (method string) &optional params &rest options)
   "It is possible to pass HTTP headers for this one call by giving an alist as :headers keyword argument."
   (destructuring-bind (&key
-                         (timeout *default-timeout*)
-                         (headers nil)) options
+		       (timeout *default-timeout*)
+		       (basic-auth nil)
+		       (headers nil)) options
     (let* ((request (make-request :id (make-id)
                                   :method method
                                   :params params))
@@ -178,6 +179,7 @@ Here is example, how to setup connection when you need to pass authorization hea
                    (yason:encode request s)))
            (raw-response (dex:post (connection-url to)
                                    :content json
+                                   :basic-auth basic-auth
                                    :headers request-headers
                                    :connect-timeout timeout
                                    :read-timeout timeout))
