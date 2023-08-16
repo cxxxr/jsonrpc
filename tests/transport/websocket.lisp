@@ -5,6 +5,7 @@
         #:jsonrpc)
   (:shadowing-import-from #:rove
                           #:*debug-on-error*)
+  (:import-from #:jsonrpc/utils #:destroy-thread*)
   (:import-from #:jsonrpc/transport/websocket)
   (:import-from #:bordeaux-threads))
 (in-package #:jsonrpc/tests/transport/websocket)
@@ -31,5 +32,5 @@
                  do (sleep 0.1))
            (jsonrpc:client-connect client :url "ws://127.0.0.1:50879" :mode :websocket)
            (ok (= (jsonrpc:call client "sum" '(10 20)) 30)))
-      (bt:destroy-thread server-thread)
+      (destroy-thread* server-thread)
       (jsonrpc:client-disconnect client))))

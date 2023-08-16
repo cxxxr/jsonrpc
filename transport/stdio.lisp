@@ -7,8 +7,9 @@
                 #:connection-socket)
   (:import-from #:yason)
   (:import-from #:bordeaux-threads
-                #:make-thread
-                #:destroy-thread)
+                #:make-thread)
+  (:import-from #:jsonrpc/utils
+                #:destroy-thread*)
   (:import-from #:jsonrpc/request-response
                 #:parse-message)
   (:export #:stdio-transport))
@@ -37,7 +38,7 @@
                (run-processing-loop transport connection))
              :name "jsonrpc/transport/stdio processing")))
       (unwind-protect (run-reading-loop transport connection)
-        (bt:destroy-thread thread)))))
+        (destroy-thread* thread)))))
 
 (defmethod start-client ((transport stdio-transport))
   (let* ((stream (make-two-way-stream (stdio-transport-input transport)

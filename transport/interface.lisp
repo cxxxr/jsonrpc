@@ -43,20 +43,25 @@
   (:method ((transport transport) connection)
     (let ((request-queue (connection-request-queue connection))
           (outbox (connection-outbox connection)))
-      (loop
-        (when (and (chanl:recv-blocks-p request-queue)
-                   (chanl:recv-blocks-p outbox))
-          (wait-for-ready connection))
-        (chanl:select
-          ((chanl:recv request-queue request)
-           (let ((response (process-request connection request)))
-             (when response
-               (add-message-to-outbox connection response))))
-          ((chanl:recv outbox message)
-           (send-message-using-transport transport connection message)))))))
+      (handler-case
+          (loop
+            (when (and (chanl:recv-blocks-p request-queue)
+                       (chanl:recv-blocks-p outbox))
+              (wait-for-ready connection))
+            (chanl:select
+              ((chanl:recv request-queue request)
+               (let ((response (process-request connection request)))
+                 (when response
+                   (add-message-to-outbox connection response))))
+              ((chanl:recv outbox message)
+               (send-message-using-transport transport connection message))))
+        ;; Broken pipe or "something bad happened" from chanl
+        ((or stream-error #+ccl simple-error) ())))))
 
 (defgeneric run-reading-loop (transport connection)
   (:method ((transport transport) connection)
-    (loop for message = (receive-message-using-transport transport connection)
-          while message
-          do (add-message-to-queue connection message))))
+    (handler-case
+        (loop for message = (receive-message-using-transport transport connection)
+              while message
+              do (add-message-to-queue connection message))
+      (end-of-file ()))))

@@ -7,10 +7,12 @@
                 #:address-in-use-error)
   (:import-from #:bordeaux-threads
                 #:make-lock
-                #:with-lock-held)
+                #:with-lock-held
+                #:destroy-thread)
   (:export #:random-port
            #:make-id
-           #:find-mode-class))
+           #:find-mode-class
+           #:destroy-thread*))
 (in-package #:jsonrpc/utils)
 
 (defun port-available-p (port)
@@ -53,3 +55,8 @@
                     (find-package package-name))))))
       (and package
            (find-class (intern (format nil "~A-~A" mode :transport) package))))))
+
+(defun destroy-thread* (thread)
+  (handler-case
+      (bt:destroy-thread thread)
+    ((or #+sbcl sb-thread:interrupt-thread-error) ())))
