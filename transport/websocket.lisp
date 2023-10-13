@@ -89,13 +89,13 @@
                (lambda (responder)
                  (declare (ignore responder))
                  (let ((thread
-                         (bt:make-thread
+                         (bt2:make-thread
                           (lambda ()
                             (run-processing-loop transport connection))
                           :name "jsonrpc/transport/websocket processing")))
                    (unwind-protect
                         (wsd:start-connection ws)
-                     (bt:destroy-thread thread))))))))
+                     (bt2:destroy-thread thread))))))))
     #'json-rpc-websocket-app))
 
 
@@ -142,7 +142,7 @@
 
     (setf (transport-threads transport)
           (list
-           (bt:make-thread
+           (bt2:make-thread
             (lambda ()
               (run-processing-loop transport connection))
             :name "jsonrpc/transport/websocket processing")

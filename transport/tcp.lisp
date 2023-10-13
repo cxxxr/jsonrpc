@@ -59,7 +59,7 @@
                                         :element-type '(unsigned-byte 8))
     (let ((callback (transport-message-callback transport))
           (client-threads '())
-          (bt:*default-special-bindings* (append bt:*default-special-bindings*
+          (bt2:*default-special-bindings* (append bt2:*default-special-bindings*
                                                  `((*standard-output* . ,*standard-output*)
                                                    (*error-output* . ,*error-output*)))))
       (unwind-protect
@@ -73,10 +73,10 @@
                  (setf (transport-connection transport) connection)
                  (emit :open transport connection)
                  (push
-                  (bt:make-thread
+                  (bt2:make-thread
                    (lambda ()
                      (let ((thread
-                             (bt:make-thread
+                             (bt2:make-thread
                               (lambda ()
                                 (run-processing-loop transport connection))
                               :name "jsonrpc/transport/tcp processing"
@@ -87,11 +87,11 @@
                             (run-reading-loop transport connection)
                          (finish-output (connection-socket connection))
                          (usocket:socket-close socket)
-                         (bt:destroy-thread thread)
+                         (bt2:destroy-thread thread)
                          (emit :close connection))))
                    :name "jsonrpc/transport/tcp reading")
                   client-threads))))
-        (mapc #'bt:destroy-thread client-threads)))))
+        (mapc #'bt2:destroy-thread client-threads)))))
 
 (defmethod start-client ((transport tcp-transport))
   (let ((stream (usocket:socket-stream
@@ -108,7 +108,7 @@
                                      :socket stream
                                      :request-callback
                                      (transport-message-callback transport)))
-          (bt:*default-special-bindings* (append bt:*default-special-bindings*
+          (bt2:*default-special-bindings* (append bt2:*default-special-bindings*
                                                  `((*standard-output* . ,*standard-output*)
                                                    (*error-output* . ,*error-output*)))))
       (setf (transport-connection transport) connection)
@@ -117,12 +117,12 @@
 
       (setf (transport-threads transport)
             (list
-             (bt:make-thread
+             (bt2:make-thread
               (lambda ()
                 (run-processing-loop transport connection))
               :name "jsonrpc/transport/tcp processing")
 
-             (bt:make-thread
+             (bt2:make-thread
               (lambda ()
                 (run-reading-loop transport connection))
               :name "jsonrpc/transport/tcp reading")))
