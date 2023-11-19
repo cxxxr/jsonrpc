@@ -32,6 +32,7 @@
                 #:make-id)
   (:import-from #:jsonrpc/class
                 #:*default-timeout*
+                #:version
                 #:client)
   (:export #:make-clack-app
            #:http-transport))
@@ -167,7 +168,9 @@ Here is example, how to setup connection when you need to pass authorization hea
 		       (timeout *default-timeout*)
 		       (basic-auth nil)
 		       (headers nil)) options
-    (let* ((request (make-request :id (make-id)
+    (let* ((version (version from))
+	   (request (make-request :id (make-id)
+				  :version version
                                   :method method
                                   :params params))
            (request-headers (merge-headers
@@ -183,7 +186,7 @@ Here is example, how to setup connection when you need to pass authorization hea
                                    :headers request-headers
                                    :connect-timeout timeout
                                    :read-timeout timeout))
-           (response (parse-message raw-response)))
+           (response (parse-message raw-response :version version)))
 
       (if (response-error response)
           (error 'jsonrpc-callback-error
