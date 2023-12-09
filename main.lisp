@@ -27,6 +27,7 @@
 
    ;; from class
    #:*default-timeout*
+   #:*jsonrpc-version*
    #:server
    #:client
    #:server-listen
@@ -64,9 +65,11 @@
    #:make-client))
 (in-package #:jsonrpc)
 
-(defun make-client ()
-  (make-instance 'client))
-
+(declaim (ftype (function (&key (:version jsonrpc-version)))))
+(defun make-client (&key (version *jsonrpc-version*))
+  "Creates and returns a new instance of the client class.
+Optionally the jsonrpc version can be supplied. Valid values are 2.0 or 1.0"
+  (make-instance 'client :version version))
 
 (defun make-server ()
   (make-instance 'server))

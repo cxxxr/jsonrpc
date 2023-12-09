@@ -22,6 +22,8 @@
                 #:add-message-to-outbox)
   (:import-from #:jsonrpc/request-response
                 #:make-request
+		#:jsonrpc-version
+		#:*jsonrpc-version*
                 #:response-error
                 #:response-error-code
                 #:response-error-message
@@ -42,6 +44,7 @@
                 #:remove-from-plist)
   (:export #:*default-timeout*
            #:client
+	   #:version
            #:server
            #:jsonrpc-transport
            #:expose
@@ -79,7 +82,13 @@
   (unless (jsonrpc-transport jsonrpc)
     (error "Connection isn't established yet for ~A" jsonrpc)))
 
-(defclass client (jsonrpc) ())
+(defclass client (jsonrpc)
+  ((version :type jsonrpc-version
+	    :initform *jsonrpc-version*
+	    :initarg :version
+	    :accessor version
+	    :documentation "JSON-RPC version of the client. Default is *jsonrpc-version* which is 2.0, while support for 1.0 is experimental."))
+  (:documentation "A client is used for creating requests."))
 
 (defclass server (jsonrpc)
   ((client-connections :initform '()
