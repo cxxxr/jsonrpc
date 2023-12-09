@@ -153,7 +153,7 @@
 (defun client-disconnect (client)
   (ensure-connected client)
   (let ((transport (jsonrpc-transport client)))
-    (mapc #'bt:destroy-thread (transport-threads transport))
+    (mapc #'bt2:destroy-thread (transport-threads transport))
     (setf (transport-threads transport) '())
     (setf (transport-connection transport) nil))
   (emit :close client)

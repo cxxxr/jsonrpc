@@ -89,13 +89,13 @@
                (lambda (responder)
                  (declare (ignore responder))
                  (let ((thread
-                         (bt:make-thread
+                         (bt2:make-thread
                           (lambda ()
                             (run-processing-loop transport connection))
                           :name "jsonrpc/transport/websocket processing")))
                    (unwind-protect
                         (wsd:start-connection ws)
-                     (bt:destroy-thread thread))))))))
+                     (bt2:destroy-thread thread))))))))
     #'json-rpc-websocket-app))
 
 
@@ -110,13 +110,14 @@
          :use-thread nil)))
 
 (defmethod start-client ((transport websocket-transport))
-  (let* ((client (wsd:make-client (format nil "~A://~A:~A~A"
-                                          (if (websocket-transport-secure-p transport)
-                                              "wss"
-                                              "ws")
-                                          (websocket-transport-host transport)
-                                          (websocket-transport-port transport)
-                                          (websocket-transport-path transport))))
+  (let* ((client (wsd:make-client (quri:render-uri
+				   (quri:make-uri
+				    :scheme (if (websocket-transport-secure-p transport)
+						"wss"
+						"ws")
+				    :host (websocket-transport-host transport)
+				    :port (websocket-transport-port transport)
+				    :path (websocket-transport-path transport)))))
          (connection (make-instance 'connection
                                     :socket client
                                     :request-callback
@@ -142,7 +143,7 @@
 
     (setf (transport-threads transport)
           (list
-           (bt:make-thread
+           (bt2:make-thread
             (lambda ()
               (run-processing-loop transport connection))
             :name "jsonrpc/transport/websocket processing")

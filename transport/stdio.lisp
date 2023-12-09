@@ -32,12 +32,12 @@
                                     :request-callback (transport-message-callback transport))))
     (setf (transport-connection transport) connection)
     (let ((thread
-            (bt:make-thread
+            (bt2:make-thread
              (lambda ()
                (run-processing-loop transport connection))
              :name "jsonrpc/transport/stdio processing")))
       (unwind-protect (run-reading-loop transport connection)
-        (bt:destroy-thread thread)))))
+        (bt2:destroy-thread thread)))))
 
 (defmethod start-client ((transport stdio-transport))
   (let* ((stream (make-two-way-stream (stdio-transport-input transport)
@@ -49,11 +49,11 @@
 
     (setf (transport-threads transport)
           (list
-           (bt:make-thread
+           (bt2:make-thread
             (lambda ()
               (run-processing-loop transport connection))
             :name "jsonrpc/transport/stdio processing")
-           (bt:make-thread
+           (bt2:make-thread
             (lambda ()
               (run-reading-loop transport connection))
             :name "jsonrpc/transport/stdio reading")))
