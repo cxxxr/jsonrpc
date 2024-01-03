@@ -68,6 +68,8 @@
                                                :request-callback
                                                (transport-message-callback transport))))
 
+               (setf (transport-connection transport) connection)
+
                (on :message ws
                    (lambda (input)
                      (let ((message (handler-case (parse-message input)
