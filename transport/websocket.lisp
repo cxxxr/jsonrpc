@@ -105,7 +105,7 @@
   (setf (transport-connection transport)
         (clack:clackup
          (make-clack-app transport)
-         :host (websocket-transport-host transport)
+         :address (websocket-transport-host transport)
          :port (websocket-transport-port transport)
          :server :hunchentoot
          :debug (slot-value transport 'debug)
