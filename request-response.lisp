@@ -4,13 +4,13 @@
         #:jsonrpc/errors)
   (:import-from #:yason
                 #:with-output
-                #:parse
                 #:encode
                 #:with-object
                 #:encode-object-element)
   (:import-from #:alexandria
                 #:hash-table-keys
                 #:xor)
+  (:import-from #:jsonrpc/yason)
   (:export #:request
            #:response
 	   #:jsonrpc-version
@@ -130,7 +130,7 @@ Default rpc-version is 2.0, alternatively 1.0 can be supplied."
   (when (or (and (typep input 'string)
                  (< 0 (length input)))
             (typep input 'stream))
-    (let ((message (handler-case (yason:parse input)
+    (let ((message (handler-case (jsonrpc/yason:parse input)
                      (error () (error 'jsonrpc-parse-error)))))
       (flet ((make-message (hash)
                (if (gethash "method" hash)
