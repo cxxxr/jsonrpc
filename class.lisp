@@ -66,7 +66,9 @@
            #:notify-async
            #:broadcast
            #:multicall-async
-           #:bind-server-to-transport))
+           #:bind-server-to-transport
+           #:on-adding-connection
+           #:on-removing-connection))
 (in-package #:jsonrpc/class)
 
 (defvar *default-timeout* 60)
@@ -96,6 +98,12 @@
    (%lock :initform (bt:make-lock "client-connections-lock"))))
 
 
+(defmethod on-adding-connection (server connection)
+  (values))
+
+(defmethod on-removing-connection (server connection)
+  (values))
+
 (defun bind-server-to-transport (server transport)
   "Initializes all necessary event handlers inside TRANSPORT to process calls to the SERVER.
 
@@ -106,16 +114,18 @@
   (setf (transport-message-callback transport)
         (lambda (message)
           (dispatch server message)))
-  
+
   (on :open transport
       (lambda (connection)
         (with-slots (%lock client-connections) server
           (on :close connection
               (lambda ()
                 (bt:with-lock-held (%lock)
+                  (on-removing-connection server connection)
                   (setf client-connections
                         (delete connection client-connections)))))
           (bt:with-lock-held (%lock)
+            (on-adding-connection server connection)
             (push connection client-connections)))
         (emit :open server connection))))
 
