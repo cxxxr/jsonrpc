@@ -136,7 +136,10 @@
 
     (on :message client
         (lambda (input)
-          (let ((message (parse-message input)))
+          (let ((message (handler-case (parse-message input)
+                           (jsonrpc-error ()
+                             ;; Nothing can be done
+                             nil))))
             (when message
               (add-message-to-queue connection message)))))
 
