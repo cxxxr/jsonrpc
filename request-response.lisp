@@ -86,7 +86,7 @@
 	   (2.0
 	    (and (equal (gethash "jsonrpc" request) "2.0")
 		 (typep (gethash "params" request)
-			'(or hash-table list))
+			'(or hash-table list string))
 		 (every (lambda (key)
 			  (find key '("jsonrpc" "method" "params" "id") :test #'string=))
 			(hash-table-keys request))))
