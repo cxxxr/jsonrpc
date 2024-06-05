@@ -40,6 +40,7 @@
                 #:emit
                 #:event-emitter)
   (:import-from #:alexandria
+                #:deletef
                 #:remove-from-plist)
   (:export #:*default-timeout*
            #:client
@@ -94,7 +95,8 @@
 (defclass server (jsonrpc)
   ((client-connections :initform '()
                        :accessor server-client-connections)
-   (%lock :initform (bt:make-lock "client-connections-lock"))))
+   (%lock :initform (bt:make-lock "client-connections-lock")
+          :reader server-lock)))
 
 
 (defmethod on-adding-connection (server connection)
@@ -116,16 +118,14 @@
 
   (on :open transport
       (lambda (connection)
-        (with-slots (%lock client-connections) server
-          (on :close connection
-              (lambda ()
-                (bt:with-lock-held (%lock)
-                  (on-removing-connection server connection)
-                  (setf client-connections
-                        (delete connection client-connections)))))
-          (bt:with-lock-held (%lock)
-            (on-adding-connection server connection)
-            (push connection client-connections)))
+        (on :close connection
+            (lambda ()
+              (bt:with-lock-held ((server-lock server))
+                (on-removing-connection server connection)
+                (deletef (server-client-connections server) connection))))
+        (bt:with-lock-held ((server-lock server))
+          (on-adding-connection server connection)
+          (push connection (server-client-connections server)))
         (emit :open server connection))))
 
 

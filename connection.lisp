@@ -58,9 +58,12 @@
    (request-queue :initform (make-instance 'chanl:unbounded-channel)
                   :accessor connection-request-queue)
 
-   (response-map :initform (make-hash-table :test 'equal))
-   (response-lock :initform (bt:make-recursive-lock "jsonrpc/connection response-lock"))
-   (response-callback :initform (make-hash-table :test 'equal))
+   (response-map :initform (make-hash-table :test 'equal)
+                 :reader connection-response-map)
+   (response-lock :initform (bt:make-recursive-lock "jsonrpc/connection response-lock")
+                  :reader connection-response-lock)
+   (response-callback :initform (make-hash-table :test 'equal)
+                      :reader connection-response-callback)
 
    (outbox :initform (make-instance 'chanl:unbounded-channel)
            :accessor connection-outbox)))
@@ -87,9 +90,9 @@
         (warn "Unexpected response which has no id. Ignored.")
         (return-from add-message-to-queue))
 
-      (with-slots (response-map
-                   response-lock
-                   response-callback) connection
+      (let ((response-map (connection-response-map connection))
+            (response-lock (connection-response-lock connection))
+            (response-callback (connection-response-callback connection)))
         (bt:with-recursive-lock-held (response-lock)
           (let ((callback (gethash id response-callback)))
             (if callback
@@ -110,9 +113,9 @@
   (notify-ready connection))
 
 (defun set-callback-for-id (connection id callback)
-  (with-slots (response-map
-               response-callback
-               response-lock) connection
+  (let ((response-map (connection-response-map connection))
+        (response-lock (connection-response-lock connection))
+        (response-callback (connection-response-callback connection)))
     (bt:with-recursive-lock-held (response-lock)
       (multiple-value-bind (response existsp)
           (gethash id response-map)
