@@ -1,4 +1,3 @@
-(in-package #:cl-user)
 (defpackage #:jsonrpc/tests/transport/stdio
   (:use #:cl
         #:rove

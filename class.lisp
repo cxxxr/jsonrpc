@@ -1,4 +1,3 @@
-(in-package #:cl-user)
 (defpackage #:jsonrpc/class
   (:use #:cl)
   (:import-from #:jsonrpc/mapper

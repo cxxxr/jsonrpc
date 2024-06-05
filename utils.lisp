@@ -1,4 +1,3 @@
-(in-package #:cl-user)
 (defpackage #:jsonrpc/utils
   (:use #:cl)
   (:import-from #:usocket

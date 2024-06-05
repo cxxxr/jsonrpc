@@ -1,4 +1,3 @@
-(in-package #:cl-user)
 (defpackage #:jsonrpc/mapper
   (:use #:cl
         #:jsonrpc/errors)

@@ -1,4 +1,3 @@
-(in-package #:cl-user)
 (defpackage #:jsonrpc
   (:nicknames #:jsonrpc/main)
   (:use #:cl

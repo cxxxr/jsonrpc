@@ -1,4 +1,3 @@
-(in-package #:cl-user)
 (defpackage #:jsonrpc/errors
   (:use #:cl)
   (:import-from #:yason)

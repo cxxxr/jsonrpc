@@ -1,4 +1,3 @@
-(in-package #:cl-user)
 (defpackage #:jsonrpc/connection
   (:use #:cl)
   (:import-from #:jsonrpc/request-response

@@ -1,4 +1,3 @@
-(in-package #:cl-user)
 (defpackage #:jsonrpc/tests/request-response
   (:use #:cl
         #:rove

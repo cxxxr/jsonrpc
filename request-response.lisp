@@ -1,4 +1,3 @@
-(in-package #:cl-user)
 (defpackage #:jsonrpc/request-response
   (:use #:cl
         #:jsonrpc/errors)

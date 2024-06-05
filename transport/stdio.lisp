@@ -1,4 +1,3 @@
-(in-package #:cl-user)
 (defpackage #:jsonrpc/transport/stdio
   (:use #:cl
         #:jsonrpc/transport/interface)
