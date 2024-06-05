@@ -33,19 +33,21 @@
 (defvar *connection*)
 
 (defclass process-wait ()
-  ((condvar :initform (bt:make-condition-variable))
-   (condlock :initform (bt:make-recursive-lock))))
+  ((condvar :initform (bt:make-condition-variable)
+            :reader process-wait-condvar)
+   (condlock :initform (bt:make-recursive-lock)
+             :reader process-wait-condlock)))
 
 (defgeneric wait-for-ready (process-wait)
   (:method ((process-wait process-wait))
-    (bt:with-recursive-lock-held ((slot-value process-wait 'condlock))
-      (bt:condition-wait (slot-value process-wait 'condvar)
-                         (slot-value process-wait 'condlock)))))
+    (bt:with-recursive-lock-held ((process-wait-condlock process-wait))
+      (bt:condition-wait (process-wait-condvar process-wait)
+                         (process-wait-condlock process-wait)))))
 
 (defgeneric notify-ready (process-wait)
   (:method ((process-wait process-wait))
-    (bt:with-recursive-lock-held ((slot-value process-wait 'condlock))
-      (bt:condition-notify (slot-value process-wait 'condvar)))))
+    (bt:with-recursive-lock-held ((process-wait-condlock process-wait))
+      (bt:condition-notify (process-wait-condvar process-wait)))))
 
 (defclass connection (event-emitter process-wait)
   ((socket :initarg :socket
@@ -68,14 +70,14 @@
   (:method ((connection connection) (messages list))
     (if (typep (first messages) 'request)
         (progn
-          (chanl:send (slot-value connection 'request-queue) messages)
+          (chanl:send (connection-request-queue connection) messages)
           (notify-ready connection))
         (dolist (response messages)
           (add-message-to-queue connection response)))
     (values))
 
   (:method ((connection connection) (message request))
-    (chanl:send (slot-value connection 'request-queue) message)
+    (chanl:send (connection-request-queue connection) message)
     (notify-ready connection)
     (values))
 

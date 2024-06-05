@@ -39,7 +39,8 @@
             :initarg :securep
             :initform nil)
    (debug :initarg :debug
-          :initform t)))
+          :initform t
+          :reader websocket-transport-debug-p)))
 
 (defmethod initialize-instance :after ((transport websocket-transport) &rest initargs &key url &allow-other-keys)
   (declare (ignore initargs))
@@ -107,7 +108,7 @@
          :address (websocket-transport-host transport)
          :port (websocket-transport-port transport)
          :server :hunchentoot
-         :debug (slot-value transport 'debug)
+         :debug (websocket-transport-debug-p transport)
          :use-thread nil)))
 
 (defmethod start-client ((transport websocket-transport))
