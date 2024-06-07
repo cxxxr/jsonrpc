@@ -106,6 +106,24 @@
 (defmethod on-removing-connection (server connection)
   (values))
 
+(defun on-open-server-transport (transport connection)
+  (let ((server (transport-jsonrpc transport)))
+    (assert (typep server 'server))
+    (on :close connection
+        (lambda ()
+          (bt:with-lock-held ((server-lock server))
+            (on-removing-connection server connection)
+            (deletef (server-client-connections server) connection))))
+    (bt:with-lock-held ((server-lock server))
+      (on-adding-connection server connection)
+      (push connection (server-client-connections server)))
+    (emit :open server connection)))
+
+(defun on-open-client-transport (transport connection)
+  (let ((client (transport-jsonrpc transport)))
+    (assert (typep client 'client))
+    (emit :open client connection)))
+
 (defun bind-server-to-transport (server transport)
   "Initializes all necessary event handlers inside TRANSPORT to process calls to the SERVER.
 
@@ -115,19 +133,7 @@
 
   (setf (transport-message-callback transport)
         (lambda (message)
-          (dispatch server message)))
-
-  (on :open transport
-      (lambda (connection)
-        (on :close connection
-            (lambda ()
-              (bt:with-lock-held ((server-lock server))
-                (on-removing-connection server connection)
-                (deletef (server-client-connections server) connection))))
-        (bt:with-lock-held ((server-lock server))
-          (on-adding-connection server connection)
-          (push connection (server-client-connections server)))
-        (emit :open server connection))))
+          (dispatch server message))))
 
 
 (defun server-listen (server &rest initargs &key mode &allow-other-keys)
@@ -157,11 +163,6 @@
                               (dispatch client message))
                             initargs)))
       (setf (jsonrpc-transport client) transport)
-
-      (on :open transport
-          (lambda (connection)
-            (emit :open client connection)))
-
       (start-client transport)))
   client)
 

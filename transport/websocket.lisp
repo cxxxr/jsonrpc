@@ -81,7 +81,7 @@
 
                (on :open ws
                    (lambda ()
-                     (emit :open transport connection)))
+                     (open-server-connection transport connection)))
 
                (on :close ws
                    (lambda (&key code reason)
@@ -126,7 +126,7 @@
                                     (transport-message-callback transport))))
     (on :open client
         (lambda ()
-          (emit :open transport connection)))
+          (open-client-connection transport connection)))
 
     (on :close client
         (lambda (&key code reason)

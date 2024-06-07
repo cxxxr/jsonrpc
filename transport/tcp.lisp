@@ -70,7 +70,7 @@
                                                  :socket (usocket:socket-stream socket)
                                                  :request-callback callback)))
                  (setf (transport-connection transport) connection)
-                 (emit :open transport connection)
+                 (open-server-connection transport connection)
                  (push
                   (bt2:make-thread
                    (lambda ()
@@ -112,7 +112,7 @@
                                                    (*error-output* . ,*error-output*)))))
       (setf (transport-connection transport) connection)
 
-      (emit :open transport connection)
+      (open-client-connection transport connection)
 
       (setf (transport-threads transport)
             (list
