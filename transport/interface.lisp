@@ -12,6 +12,7 @@
                 #:event-emitter)
   (:import-from #:chanl)
   (:export #:transport
+           #:transport-jsonrpc
            #:transport-message-callback
            #:transport-connection
            #:transport-threads
@@ -24,7 +25,8 @@
 (in-package #:jsonrpc/transport/interface)
 
 (defclass transport (event-emitter)
-  ((message-callback :initarg :message-callback
+  ((jsonrpc :initarg :jsonrpc :reader transport-jsonrpc) ; server or client
+   (message-callback :initarg :message-callback
                      :accessor transport-message-callback)
    (connection :accessor transport-connection)
    (threads :initform '()

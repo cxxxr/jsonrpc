@@ -8,6 +8,7 @@
                 #:dispatch)
   (:import-from #:jsonrpc/transport/interface
                 #:transport-message-callback
+                #:transport-jsonrpc
                 #:transport
                 #:transport-connection
                 #:transport-threads
@@ -138,6 +139,7 @@
     (unless class
       (error "Unknown mode ~A" mode))
     (let ((transport (apply #'make-instance class
+                            :jsonrpc server
                             initargs)))
       (bind-server-to-transport server transport)
       (start-server transport)))
@@ -149,6 +151,7 @@
                                           (*error-output* . ,*error-output*)
                                           ,@bt:*default-special-bindings*)))
     (let ((transport (apply #'make-instance class
+                            :jsonrpc client
                             :message-callback
                             (lambda (message)
                               (dispatch client message))
