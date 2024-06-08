@@ -116,8 +116,7 @@
             (deletef (server-client-connections server) connection))))
     (bt:with-lock-held ((server-lock server))
       (on-adding-connection server connection)
-      (push connection (server-client-connections server)))
-    (emit :open server connection)))
+      (push connection (server-client-connections server)))))
 
 (defun on-open-client-transport (transport connection)
   (let ((client (transport-jsonrpc transport)))
