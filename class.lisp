@@ -31,6 +31,7 @@
   (:import-from #:jsonrpc/errors
                 #:jsonrpc-callback-error)
   (:import-from #:jsonrpc/utils
+                #:hash-exists-p
                 #:find-mode-class
                 #:make-id)
   (:import-from #:bordeaux-threads
@@ -211,10 +212,6 @@
 
 (defvar *call-to-result* (make-hash-table :test 'eq))
 (defvar *call-to-error* (make-hash-table :test 'eq))
-
-(defun hash-exists-p (hash-table key)
-  (nth-value 1 (gethash key hash-table)))
-
 
 (defgeneric call-to (from-client to-connection method &optional params &rest options)
   (:documentation "Makes a synchronouse RPC call. Should return an instance of JSONRPC/REQUEST-RESPONSE:RESPONSE class."))

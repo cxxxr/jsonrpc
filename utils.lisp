@@ -7,10 +7,14 @@
   (:import-from #:bordeaux-threads
                 #:make-lock
                 #:with-lock-held)
-  (:export #:random-port
+  (:export #:hash-exists-p
+           #:random-port
            #:make-id
            #:find-mode-class))
 (in-package #:jsonrpc/utils)
+
+(defun hash-exists-p (hash-table key)
+  (nth-value 1 (gethash key hash-table)))
 
 (defun port-available-p (port)
   (handler-case (let ((socket (usocket:socket-listen "127.0.0.1" port :reuse-address t)))
