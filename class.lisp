@@ -1,5 +1,9 @@
 (defpackage #:jsonrpc/class
   (:use #:cl)
+  (:import-from #:jsonrpc/base
+                #:jsonrpc
+                #:jsonrpc-transport
+                #:ensure-connected)
   (:import-from #:jsonrpc/mapper
                 #:exposable
                 #:expose
@@ -70,17 +74,6 @@
 (in-package #:jsonrpc/class)
 
 (defvar *default-timeout* 60)
-
-(defclass jsonrpc (exposable)
-  ((transport :type (or null transport)
-              :initarg :transport
-              :initform nil
-              :accessor jsonrpc-transport)))
-
-(defun ensure-connected (jsonrpc)
-  (check-type jsonrpc jsonrpc)
-  (unless (jsonrpc-transport jsonrpc)
-    (error "Connection isn't established yet for ~A" jsonrpc)))
 
 (defclass client (jsonrpc)
   ((version :type jsonrpc-version
