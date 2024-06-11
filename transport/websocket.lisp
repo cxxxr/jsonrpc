@@ -86,7 +86,7 @@
                (on :close ws
                    (lambda (&key code reason)
                      (declare (ignore code reason))
-                     (emit :close connection)))
+                     (close-server-connection transport connection)))
 
                (lambda (responder)
                  (declare (ignore responder))

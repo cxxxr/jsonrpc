@@ -23,7 +23,8 @@
            #:run-processing-loop
            #:run-reading-loop
            #:open-server-connection
-           #:open-client-connection))
+           #:open-client-connection
+           #:close-server-connection))
 (in-package #:jsonrpc/transport/interface)
 
 (defclass transport (event-emitter)
@@ -71,3 +72,7 @@
 (defmethod open-client-connection ((transport transport) connection)
   ;; TODO: refactor
   (uiop:symbol-call :jsonrpc/class :on-open-client-transport transport connection))
+
+(defmethod close-server-connection ((transport transport) connection)
+  ;; TODO: refactor
+  (uiop:symbol-call :jsonrpc/class :on-close-server-connection transport connection))

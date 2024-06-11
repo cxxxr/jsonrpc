@@ -87,7 +87,7 @@
                          (finish-output (connection-socket connection))
                          (usocket:socket-close socket)
                          (bt2:destroy-thread thread)
-                         (emit :close connection))))
+                         (close-server-connection transport connection))))
                    :name "jsonrpc/transport/tcp reading")
                   client-threads))))
         (mapc #'bt2:destroy-thread client-threads)))))

@@ -106,14 +106,16 @@
 (defmethod on-removing-connection (server connection)
   (values))
 
+(defun on-close-server-connection (transport connection)
+  (let ((server (transport-jsonrpc transport)))
+    (assert (typep server 'server))
+    (bt:with-lock-held ((server-lock server))
+      (on-removing-connection server connection)
+      (deletef (server-client-connections server) connection))))
+
 (defun on-open-server-transport (transport connection)
   (let ((server (transport-jsonrpc transport)))
     (assert (typep server 'server))
-    (on :close connection
-        (lambda ()
-          (bt:with-lock-held ((server-lock server))
-            (on-removing-connection server connection)
-            (deletef (server-client-connections server) connection))))
     (bt:with-lock-held ((server-lock server))
       (on-adding-connection server connection)
       (push connection (server-client-connections server)))))
