@@ -8,8 +8,6 @@
                 #:connection-outbox
                 #:add-message-to-outbox)
   (:import-from #:bordeaux-threads)
-  (:import-from #:event-emitter
-                #:event-emitter)
   (:import-from #:chanl)
   (:export #:transport
            #:transport-jsonrpc
@@ -27,7 +25,7 @@
            #:close-server-connection))
 (in-package #:jsonrpc/transport/interface)
 
-(defclass transport (event-emitter)
+(defclass transport ()
   ((jsonrpc :initarg :jsonrpc :reader transport-jsonrpc) ; server or client
    (message-callback :initarg :message-callback
                      :accessor transport-message-callback)

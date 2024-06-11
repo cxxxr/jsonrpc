@@ -14,8 +14,7 @@
                 #:make-thread
                 #:destroy-thread)
   (:import-from #:event-emitter
-                #:on
-                #:emit)
+                #:on)
   (:import-from #:yason)
   (:import-from #:quri)
   (:import-from #:websocket-driver)

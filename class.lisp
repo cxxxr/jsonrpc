@@ -36,8 +36,6 @@
   (:import-from #:bordeaux-threads
                 #:*default-special-bindings*
                 #:destroy-thread)
-  (:import-from #:event-emitter
-                #:event-emitter)
   (:import-from #:alexandria
                 #:deletef
                 #:remove-from-plist)
@@ -72,7 +70,7 @@
 
 (defvar *default-timeout* 60)
 
-(defclass jsonrpc (event-emitter exposable)
+(defclass jsonrpc (exposable)
   ((transport :type (or null transport)
               :initarg :transport
               :initform nil

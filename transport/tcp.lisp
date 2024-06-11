@@ -18,8 +18,6 @@
                 #:make-output-buffer
                 #:finish-output-buffer
                 #:fast-write-byte)
-  (:import-from #:event-emitter
-                #:emit)
   (:import-from #:trivial-utf-8
                 #:utf-8-bytes-to-string
                 #:string-to-utf-8-bytes)
