@@ -118,6 +118,7 @@
       (push connection (server-client-connections server)))))
 
 (defun on-open-client-transport (transport connection)
+  (declare (ignore connection))
   (let ((client (transport-jsonrpc transport)))
     (assert (typep client 'client))))
 
