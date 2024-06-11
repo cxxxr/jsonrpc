@@ -37,8 +37,6 @@
                 #:*default-special-bindings*
                 #:destroy-thread)
   (:import-from #:event-emitter
-                #:on
-                #:emit
                 #:event-emitter)
   (:import-from #:alexandria
                 #:deletef
@@ -122,8 +120,7 @@
 
 (defun on-open-client-transport (transport connection)
   (let ((client (transport-jsonrpc transport)))
-    (assert (typep client 'client))
-    (emit :open client connection)))
+    (assert (typep client 'client))))
 
 (defun bind-server-to-transport (server transport)
   "Initializes all necessary event handlers inside TRANSPORT to process calls to the SERVER.
@@ -179,7 +176,6 @@
     (mapc #'bt2:destroy-thread (transport-threads transport))
     (setf (transport-threads transport) '())
     (setf (transport-connection transport) nil))
-  (emit :close client)
   (values))
 
 (defgeneric send-message (to connection message)
