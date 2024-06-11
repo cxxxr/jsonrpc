@@ -65,12 +65,21 @@
 
 (defmethod open-server-connection ((transport transport) connection)
   ;; TODO: refactor
-  (uiop:symbol-call :jsonrpc/class :on-open-server-transport transport connection))
-
-(defmethod open-client-connection ((transport transport) connection)
-  ;; TODO: refactor
-  (uiop:symbol-call :jsonrpc/class :on-open-client-transport transport connection))
+  (uiop:symbol-call :jsonrpc/class
+                    :on-open-server-transport
+                    (transport-jsonrpc transport)
+                    connection))
 
 (defmethod close-server-connection ((transport transport) connection)
   ;; TODO: refactor
-  (uiop:symbol-call :jsonrpc/class :on-close-server-connection transport connection))
+  (uiop:symbol-call :jsonrpc/class
+                    :on-close-server-connection
+                    (transport-jsonrpc transport)
+                    connection))
+
+(defmethod open-client-connection ((transport transport) connection)
+  ;; TODO: refactor
+  (uiop:symbol-call :jsonrpc/class
+                    :on-open-client-transport
+                    (transport-jsonrpc transport)
+                    connection))
