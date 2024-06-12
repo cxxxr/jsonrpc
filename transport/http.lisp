@@ -31,9 +31,7 @@
   (:import-from #:jsonrpc/utils
                 #:make-id)
   (:import-from #:jsonrpc/class
-                #:*default-timeout*
-                #:version
-                #:client)
+                #:version)
   (:export #:make-clack-app
            #:http-transport))
 (in-package #:jsonrpc/transport/http)
@@ -162,10 +160,10 @@ Here is example, how to setup connection when you need to pass authorization hea
         finally (return result)))
 
 
-(defmethod jsonrpc:call-to ((from client) (to http-connection) (method string) &optional params &rest options)
+(defmethod jsonrpc:call-to ((from jsonrpc:client) (to http-connection) (method string) &optional params &rest options)
   "It is possible to pass HTTP headers for this one call by giving an alist as :headers keyword argument."
   (destructuring-bind (&key
-		       (timeout *default-timeout*)
+		       (timeout jsonrpc:*default-timeout*)
 		       (basic-auth nil)
 		       (headers nil)) options
     (let* ((version (version from))
