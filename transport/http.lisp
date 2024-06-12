@@ -30,7 +30,7 @@
                 #:start-client)
   (:import-from #:jsonrpc/utils
                 #:make-id)
-  (:import-from #:jsonrpc/class
+  (:import-from #:jsonrpc/client
                 #:version)
   (:export #:make-clack-app
            #:http-transport))

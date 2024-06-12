@@ -20,19 +20,19 @@
   (:import-from #:jsonrpc/utils
                 #:hash-exists-p
                 #:make-id)
-  (:export :jsonrpc
-           :jsonrpc-transport
-           :ensure-connected
-           :send-message
-           :receive-message
-           :call-async-to
-           :call-to
-           :*default-timeout*
-           :notify-to
-           :call
-           :call-async
-           :notify
-           :notify-async))
+  (:export #:jsonrpc
+           #:jsonrpc-transport
+           #:ensure-connected
+           #:send-message
+           #:receive-message
+           #:call-async-to
+           #:call-to
+           #:*default-timeout*
+           #:notify-to
+           #:call
+           #:call-async
+           #:notify
+           #:notify-async))
 (in-package :jsonrpc/base)
 
 (defclass jsonrpc (exposable)
