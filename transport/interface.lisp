@@ -79,7 +79,7 @@
 
 (defmethod open-client-connection ((transport transport) connection)
   ;; TODO: refactor
-  (uiop:symbol-call :jsonrpc/class
+  (uiop:symbol-call :jsonrpc/client
                     :on-open-client-transport
                     (transport-jsonrpc transport)
                     connection))

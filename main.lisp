@@ -4,6 +4,7 @@
         #:jsonrpc/request-response
         #:jsonrpc/transport/interface
         #:jsonrpc/class
+        #:jsonrpc/client
         #:jsonrpc/errors)
   (:export
    ;; from request-response
