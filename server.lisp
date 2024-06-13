@@ -22,8 +22,6 @@
                 #:remove-from-plist)
   (:export
    :server
-   :on-adding-connection
-   :on-removing-connection
    :bind-server-to-transport
    :server-listen
    :broadcast
@@ -37,22 +35,12 @@
           :reader server-lock)))
 
 
-;; TODO(cxxxr): on-open-connectionとまとめる
-(defmethod on-adding-connection (server connection)
-  (values))
-
-;; TODO(cxxxr): on-close-connectionとまとめる
-(defmethod on-removing-connection (server connection)
-  (values))
-
 (defmethod jsonrpc/base:on-close-connection ((server server) connection)
   (bt:with-lock-held ((server-lock server))
-    (on-removing-connection server connection)
     (deletef (server-client-connections server) connection)))
 
 (defmethod jsonrpc/base:on-open-connection ((server server) connection)
   (bt:with-lock-held ((server-lock server))
-    (on-adding-connection server connection)
     (push connection (server-client-connections server))))
 
 (defun bind-server-to-transport (server transport)
