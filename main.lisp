@@ -3,8 +3,11 @@
   (:use #:cl
         #:jsonrpc/request-response
         #:jsonrpc/transport/interface
-        #:jsonrpc/class
-        #:jsonrpc/errors)
+        #:jsonrpc/base
+        #:jsonrpc/client
+        #:jsonrpc/server
+        #:jsonrpc/errors
+        #:jsonrpc/mapper)
   (:export
    ;; from request-response
    #:request

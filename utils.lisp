@@ -7,10 +7,13 @@
   (:import-from #:bordeaux-threads
                 #:make-lock
                 #:with-lock-held)
-  (:export #:random-port
-           #:make-id
-           #:find-mode-class))
+  (:export #:hash-exists-p
+           #:random-port
+           #:make-id))
 (in-package #:jsonrpc/utils)
+
+(defun hash-exists-p (hash-table key)
+  (nth-value 1 (gethash key hash-table)))
 
 (defun port-available-p (port)
   (handler-case (let ((socket (usocket:socket-listen "127.0.0.1" port :reuse-address t)))
@@ -33,22 +36,3 @@
               ((0 1) (code-char (+ #.(char-code #\a) (random 26))))
               ((2 3) (code-char (+ #.(char-code #\A) (random 26))))
               ((4) (code-char (+ #.(char-code #\0) (random 10)))))))))
-
-(defvar *transport-load-lock* (bt:make-recursive-lock))
-(defun find-mode-class (mode)
-  (let ((system-name (format nil "jsonrpc/transport/~(~A~)" mode))
-        (package-name (format nil "~A/~A"
-                              :jsonrpc/transport
-                              mode)))
-
-    (let ((package
-            (bt:with-lock-held (*transport-load-lock*)
-              (or (find-package package-name)
-                  (progn
-                    #+quicklisp
-                    (ql:quickload system-name :silent t)
-                    #-quicklisp
-                    (asdf:load-system system-name :verbose nil)
-                    (find-package package-name))))))
-      (and package
-           (find-class (intern (format nil "~A-~A" mode :transport) package))))))

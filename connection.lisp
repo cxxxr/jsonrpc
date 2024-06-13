@@ -13,8 +13,6 @@
                 #:*default-special-bindings*)
   (:import-from #:dissect
                 #:present)
-  (:import-from #:event-emitter
-                #:event-emitter)
   (:import-from #:chanl)
   (:import-from #:vom)
   (:export #:connection
@@ -49,7 +47,7 @@
     (bt:with-recursive-lock-held ((process-wait-condlock process-wait))
       (bt:condition-notify (process-wait-condvar process-wait)))))
 
-(defclass connection (event-emitter process-wait)
+(defclass connection (process-wait)
   ((socket :initarg :socket
            :accessor connection-socket)
    (request-callback :initarg :request-callback

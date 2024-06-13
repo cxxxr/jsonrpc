@@ -8,10 +8,9 @@
                 #:connection-outbox
                 #:add-message-to-outbox)
   (:import-from #:bordeaux-threads)
-  (:import-from #:event-emitter
-                #:event-emitter)
   (:import-from #:chanl)
   (:export #:transport
+           #:transport-jsonrpc
            #:transport-message-callback
            #:transport-connection
            #:transport-threads
@@ -20,11 +19,13 @@
            #:send-message-using-transport
            #:receive-message-using-transport
            #:run-processing-loop
-           #:run-reading-loop))
+           #:run-reading-loop
+           #:find-mode-class))
 (in-package #:jsonrpc/transport/interface)
 
-(defclass transport (event-emitter)
-  ((message-callback :initarg :message-callback
+(defclass transport ()
+  ((jsonrpc :initarg :jsonrpc :reader transport-jsonrpc) ; server or client
+   (message-callback :initarg :message-callback
                      :accessor transport-message-callback)
    (connection :accessor transport-connection)
    (threads :initform '()
@@ -59,3 +60,22 @@
     (loop for message = (receive-message-using-transport transport connection)
           while message
           do (add-message-to-queue connection message))))
+
+(defvar *transport-load-lock* (bt:make-recursive-lock))
+(defun find-mode-class (mode)
+  (let ((system-name (format nil "jsonrpc/transport/~(~A~)" mode))
+        (package-name (format nil "~A/~A"
+                              :jsonrpc/transport
+                              mode)))
+
+    (let ((package
+            (bt:with-lock-held (*transport-load-lock*)
+              (or (find-package package-name)
+                  (progn
+                    #+quicklisp
+                    (ql:quickload system-name :silent t)
+                    #-quicklisp
+                    (asdf:load-system system-name :verbose nil)
+                    (find-package package-name))))))
+      (and package
+           (find-class (intern (format nil "~A-~A" mode :transport) package))))))

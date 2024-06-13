@@ -2,6 +2,9 @@
   (:use #:cl
         #:jsonrpc/utils
         #:jsonrpc/transport/interface)
+  (:import-from #:jsonrpc/base
+                #:on-open-connection
+                #:on-close-connection)
   (:import-from #:jsonrpc/connection
                 #:connection
                 #:connection-socket)
@@ -18,8 +21,6 @@
                 #:make-output-buffer
                 #:finish-output-buffer
                 #:fast-write-byte)
-  (:import-from #:event-emitter
-                #:emit)
   (:import-from #:trivial-utf-8
                 #:utf-8-bytes-to-string
                 #:string-to-utf-8-bytes)
@@ -70,7 +71,7 @@
                                                  :socket (usocket:socket-stream socket)
                                                  :request-callback callback)))
                  (setf (transport-connection transport) connection)
-                 (emit :open transport connection)
+                 (on-open-connection (transport-jsonrpc transport) connection)
                  (push
                   (bt2:make-thread
                    (lambda ()
@@ -87,7 +88,7 @@
                          (finish-output (connection-socket connection))
                          (usocket:socket-close socket)
                          (bt2:destroy-thread thread)
-                         (emit :close connection))))
+                         (on-close-connection (transport-jsonrpc transport) connection))))
                    :name "jsonrpc/transport/tcp reading")
                   client-threads))))
         (mapc #'bt2:destroy-thread client-threads)))))
@@ -112,7 +113,7 @@
                                                    (*error-output* . ,*error-output*)))))
       (setf (transport-connection transport) connection)
 
-      (emit :open transport connection)
+      (on-open-connection (transport-jsonrpc transport) connection)
 
       (setf (transport-threads transport)
             (list
