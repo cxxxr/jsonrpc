@@ -24,14 +24,14 @@
 
    ;; from transports
    #:transport
-   #:send-message
-   #:receive-message
 
-   ;; from class
+   ;; from base/server/client
    #:*default-timeout*
    #:*jsonrpc-version*
    #:server
    #:client
+   #:send-message
+   #:receive-message
    #:server-listen
    #:client-connect
    #:client-disconnect
