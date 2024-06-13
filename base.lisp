@@ -37,6 +37,17 @@
            #:on-close-connection))
 (in-package :jsonrpc/base)
 
+(defgeneric call (jsonrpc method &optional params &rest options))
+(defgeneric call-async (jsonrpc method &optional params callback error-callback))
+(defgeneric notify (jsonrpc method &optional params))
+(defgeneric notify-async (jsonrpc method &optional params))
+(defgeneric on-open-connection (jsonrpc connection))
+(defgeneric on-close-connection (jsonrpc connection))
+(defgeneric call-to (from-client to-connection method &optional params &rest options)
+  (:documentation "Makes a synchronouse RPC call. Should return an instance of JSONRPC/REQUEST-RESPONSE:RESPONSE class."))
+
+(deftype jsonrpc-params () '(or list array hash-table structure-object standard-object condition))
+
 (defclass jsonrpc (exposable)
   ((transport :type (or null transport)
               :initarg :transport
@@ -56,8 +67,6 @@
 (defun receive-message (from connection)
   (ensure-connected from)
   (receive-message-using-transport (jsonrpc-transport from) connection))
-
-(deftype jsonrpc-params () '(or list array hash-table structure-object standard-object condition))
 
 (defun call-async-to (from to method &optional params callback error-callback)
   (check-type params jsonrpc-params)
@@ -81,14 +90,8 @@
 
     (values)))
 
-
 (defvar *call-to-result* (make-hash-table :test 'eq))
 (defvar *call-to-error* (make-hash-table :test 'eq))
-
-(defgeneric call-to (from-client to-connection method &optional params &rest options)
-  (:documentation "Makes a synchronouse RPC call. Should return an instance of JSONRPC/REQUEST-RESPONSE:RESPONSE class."))
-
-
 (defvar *default-timeout* 60)
 
 (defmethod call-to ((from jsonrpc) (to connection) (method string) &optional params &rest options)
@@ -143,14 +146,3 @@
                 to
                 (make-request :method method
                               :params params)))
-
-(defgeneric call (jsonrpc method &optional params &rest options))
-
-(defgeneric call-async (jsonrpc method &optional params callback error-callback))
-
-(defgeneric notify (jsonrpc method &optional params))
-
-(defgeneric notify-async (jsonrpc method &optional params))
-
-(defgeneric on-open-connection (jsonrpc connection))
-(defgeneric on-close-connection (jsonrpc connection))
