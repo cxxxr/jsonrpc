@@ -1,6 +1,6 @@
-(defpackage #:jsonrpc/server
-  (:use #:cl)
-  (:use #:jsonrpc/base)
+(uiop:define-package #:jsonrpc/server
+  (:use #:cl
+        #:jsonrpc/base)
   (:import-from #:jsonrpc/base
                 #:jsonrpc
                 #:jsonrpc-transport)
@@ -24,8 +24,6 @@
    :server
    :on-adding-connection
    :on-removing-connection
-   :on-close-server-connection
-   :on-open-server-transport
    :bind-server-to-transport
    :server-listen
    :broadcast
@@ -39,18 +37,20 @@
           :reader server-lock)))
 
 
+;; TODO(cxxxr): on-open-connectionとまとめる
 (defmethod on-adding-connection (server connection)
   (values))
 
+;; TODO(cxxxr): on-close-connectionとまとめる
 (defmethod on-removing-connection (server connection)
   (values))
 
-(defmethod on-close-server-connection ((server server) connection)
+(defmethod jsonrpc/base:on-close-connection ((server server) connection)
   (bt:with-lock-held ((server-lock server))
     (on-removing-connection server connection)
     (deletef (server-client-connections server) connection)))
 
-(defmethod on-open-server-transport ((server server) connection)
+(defmethod jsonrpc/base:on-open-connection ((server server) connection)
   (bt:with-lock-held ((server-lock server))
     (on-adding-connection server connection)
     (push connection (server-client-connections server))))

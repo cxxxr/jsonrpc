@@ -30,7 +30,6 @@
   (:import-from #:alexandria
                 #:remove-from-plist)
   (:export #:client
-           #:on-open-client-transport
            #:client-connect-using-class
            #:client-connect
            #:client-disconnect))
@@ -44,7 +43,7 @@
             :documentation "JSON-RPC version of the client. Default is *jsonrpc-version* which is 2.0, while support for 1.0 is experimental."))
   (:documentation "A client is used for creating requests."))
 
-(defmethod on-open-client-transport ((client client) connection)
+(defmethod jsonrpc/base:on-open-connection ((client client) connection)
   (declare (ignore connection)))
 
 (defun client-connect-using-class (client class &rest initargs)

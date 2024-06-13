@@ -19,10 +19,7 @@
            #:send-message-using-transport
            #:receive-message-using-transport
            #:run-processing-loop
-           #:run-reading-loop
-           #:open-server-connection
-           #:open-client-connection
-           #:close-server-connection))
+           #:run-reading-loop))
 (in-package #:jsonrpc/transport/interface)
 
 (defclass transport ()
@@ -62,24 +59,3 @@
     (loop for message = (receive-message-using-transport transport connection)
           while message
           do (add-message-to-queue connection message))))
-
-(defmethod open-server-connection ((transport transport) connection)
-  ;; TODO: refactor
-  (uiop:symbol-call :jsonrpc/server
-                    :on-open-server-transport
-                    (transport-jsonrpc transport)
-                    connection))
-
-(defmethod close-server-connection ((transport transport) connection)
-  ;; TODO: refactor
-  (uiop:symbol-call :jsonrpc/server
-                    :on-close-server-connection
-                    (transport-jsonrpc transport)
-                    connection))
-
-(defmethod open-client-connection ((transport transport) connection)
-  ;; TODO: refactor
-  (uiop:symbol-call :jsonrpc/client
-                    :on-open-client-transport
-                    (transport-jsonrpc transport)
-                    connection))

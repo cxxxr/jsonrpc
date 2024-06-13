@@ -2,6 +2,9 @@
   (:use #:cl
         #:jsonrpc/transport/interface
         #:jsonrpc/utils)
+  (:import-from #:jsonrpc/base
+                #:on-open-connection
+                #:on-close-connection)
   (:import-from #:jsonrpc/connection
                 #:connection
                 #:connection-socket
@@ -80,12 +83,12 @@
 
                (on :open ws
                    (lambda ()
-                     (open-server-connection transport connection)))
+                     (on-open-connection (transport-jsonrpc transport) connection)))
 
                (on :close ws
                    (lambda (&key code reason)
                      (declare (ignore code reason))
-                     (close-server-connection transport connection)))
+                     (on-close-connection (transport-jsonrpc transport) connection)))
 
                (lambda (responder)
                  (declare (ignore responder))
@@ -125,7 +128,7 @@
                                     (transport-message-callback transport))))
     (on :open client
         (lambda ()
-          (open-client-connection transport connection)))
+          (on-open-connection (transport-jsonrpc transport) connection)))
 
     (on :close client
         (lambda (&key code reason)

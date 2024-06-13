@@ -32,7 +32,9 @@
            #:call
            #:call-async
            #:notify
-           #:notify-async))
+           #:notify-async
+           #:on-open-connection
+           #:on-close-connection))
 (in-package :jsonrpc/base)
 
 (defclass jsonrpc (exposable)
@@ -149,3 +151,6 @@
 (defgeneric notify (jsonrpc method &optional params))
 
 (defgeneric notify-async (jsonrpc method &optional params))
+
+(defgeneric on-open-connection (jsonrpc connection))
+(defgeneric on-close-connection (jsonrpc connection))

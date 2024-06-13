@@ -1,3 +1,5 @@
+;; TODO(cxxxr): このパッケージを削除する
+
 (defpackage #:jsonrpc/class
   (:use #:cl)
   (:use #:jsonrpc/base)
