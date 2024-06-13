@@ -54,8 +54,7 @@
               :initform nil
               :accessor jsonrpc-transport)))
 
-(defun ensure-connected (jsonrpc)
-  (check-type jsonrpc jsonrpc)
+(defmethod ensure-connected ((jsonrpc jsonrpc))
   (unless (jsonrpc-transport jsonrpc)
     (error "Connection isn't established yet for ~A" jsonrpc)))
 
