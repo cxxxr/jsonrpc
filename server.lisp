@@ -9,14 +9,13 @@
   (:import-from #:jsonrpc/transport/interface
                 #:transport-message-callback
                 #:transport
-                #:start-server)
+                #:start-server
+                #:find-mode-class)
   (:import-from #:jsonrpc/connection
                 #:connection
                 #:*connection*)
   (:import-from #:jsonrpc/request-response
                 #:make-request)
-  (:import-from #:jsonrpc/utils
-                #:find-mode-class)
   (:import-from #:alexandria
                 #:deletef
                 #:remove-from-plist)

@@ -18,15 +18,14 @@
                 #:transport
                 #:transport-connection
                 #:transport-threads
-                #:start-client)
+                #:start-client
+                #:find-mode-class)
   (:import-from #:jsonrpc/connection
                 #:connection)
   (:import-from #:jsonrpc/request-response
                 #:make-request
                 #:jsonrpc-version
                 #:*jsonrpc-version*)
-  (:import-from #:jsonrpc/utils
-                #:find-mode-class)
   (:import-from #:alexandria
                 #:remove-from-plist)
   (:export #:client
