@@ -8,7 +8,6 @@
   (:import-from #:dexador)
   (:import-from #:jsonrpc/connection
                 #:connection
-                #:connection-socket
                 #:add-message-to-queue)
   (:import-from #:jsonrpc/request-response
                 #:response-result

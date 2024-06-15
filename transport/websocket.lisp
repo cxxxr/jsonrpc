@@ -7,7 +7,7 @@
                 #:on-close-connection)
   (:import-from #:jsonrpc/connection
                 #:connection
-                #:connection-socket
+                #:connection-stream
                 #:add-message-to-queue)
   (:import-from #:jsonrpc/request-response
                 #:parse-message)
@@ -66,7 +66,7 @@
                (return '(200 () ("ok"))))
              (let* ((ws (wsd:make-server env))
                     (connection (make-instance 'connection
-                                               :socket ws
+                                               :stream ws
                                                :request-callback
                                                (transport-message-callback transport))))
 
@@ -123,7 +123,7 @@
 				    :port (websocket-transport-port transport)
 				    :path (websocket-transport-path transport)))))
          (connection (make-instance 'connection
-                                    :socket client
+                                    :stream client
                                     :request-callback
                                     (transport-message-callback transport))))
     (on :open client
@@ -163,7 +163,7 @@
 (defmethod send-message-using-transport ((transport websocket-transport) connection message)
   (let ((json (with-output-to-string (s)
                 (yason:encode message s)))
-        (ws (connection-socket connection)))
+        (ws (connection-stream connection)))
     (wsd:send ws json)))
 
 (defmethod receive-message-using-transport ((transport websocket-transport) connection)

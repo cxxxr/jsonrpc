@@ -7,7 +7,7 @@
                 #:on-close-connection)
   (:import-from #:jsonrpc/connection
                 #:connection
-                #:connection-socket)
+                #:connection-stream)
   (:import-from #:jsonrpc/request-response
                 #:parse-message)
   (:import-from #:usocket)
@@ -68,7 +68,7 @@
              (when (member (usocket:socket-state server) '(:read :read-write))
                (let* ((socket (usocket:socket-accept server))
                       (connection (make-instance 'connection
-                                                 :socket (usocket:socket-stream socket)
+                                                 :stream (usocket:socket-stream socket)
                                                  :request-callback callback)))
                  (setf (transport-connection transport) connection)
                  (on-open-connection (transport-jsonrpc transport) connection)
@@ -85,7 +85,7 @@
                                 (*error-output* . ,*error-output*)))))
                        (unwind-protect
                             (run-reading-loop transport connection)
-                         (finish-output (connection-socket connection))
+                         (finish-output (connection-stream connection))
                          (usocket:socket-close socket)
                          (bt2:destroy-thread thread)
                          (on-close-connection (transport-jsonrpc transport) connection))))
@@ -105,7 +105,7 @@
               stream))
 
     (let ((connection (make-instance 'connection
-                                     :socket stream
+                                     :stream stream
                                      :request-callback
                                      (transport-message-callback transport)))
           (bt2:*default-special-bindings* (append bt2:*default-special-bindings*
@@ -133,7 +133,7 @@
   (let* ((json (with-output-to-string (s)
                  (yason:encode message s)))
          (body (string-to-utf-8-bytes json))
-         (stream (connection-socket connection)))
+         (stream (connection-stream connection)))
     (write-sequence
      (string-to-utf-8-bytes
       (format nil
@@ -147,7 +147,7 @@
 
 (defmethod receive-message-using-transport ((transport tcp-transport) connection)
   (handler-case
-      (let* ((stream (connection-socket connection))
+      (let* ((stream (connection-stream connection))
              (headers (read-headers stream))
              (length (ignore-errors (parse-integer (gethash "content-length" headers)))))
         (when length

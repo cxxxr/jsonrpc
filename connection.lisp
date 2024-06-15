@@ -18,7 +18,7 @@
   (:export #:connection
            #:*connection*
            #:wait-for-ready
-           #:connection-socket
+           #:connection-stream
            #:connection-request-callback
            #:add-message-to-queue
            #:add-message-to-outbox
@@ -48,8 +48,8 @@
       (bt:condition-notify (process-wait-condvar process-wait)))))
 
 (defclass connection (process-wait)
-  ((socket :initarg :socket
-           :accessor connection-socket)
+  ((stream :initarg :stream
+           :accessor connection-stream)
    (request-callback :initarg :request-callback
                      :accessor connection-request-callback)
 

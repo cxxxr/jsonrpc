@@ -3,7 +3,7 @@
         #:jsonrpc/transport/interface)
   (:import-from #:jsonrpc/connection
                 #:connection
-                #:connection-socket)
+                #:connection-stream)
   (:import-from #:yason)
   (:import-from #:bordeaux-threads
                 #:make-thread
@@ -27,7 +27,7 @@
   (let* ((stream (make-two-way-stream (stdio-transport-input transport)
                                       (stdio-transport-output transport)))
          (connection (make-instance 'connection
-                                    :socket stream
+                                    :stream stream
                                     :request-callback (transport-message-callback transport))))
     (setf (transport-connection transport) connection)
     (let ((thread
@@ -42,7 +42,7 @@
   (let* ((stream (make-two-way-stream (stdio-transport-input transport)
                                       (stdio-transport-output transport)))
          (connection (make-instance 'connection
-                                    :socket stream
+                                    :stream stream
                                     :request-callback (transport-message-callback transport))))
     (setf (transport-connection transport) connection)
 
@@ -61,7 +61,7 @@
 (defmethod send-message-using-transport ((transport stdio-transport) connection message)
   (let ((json (with-output-to-string (s)
                 (yason:encode message s)))
-        (stream (connection-socket connection)))
+        (stream (connection-stream connection)))
     (format stream "Content-Length: ~A~C~C~:*~:*~C~C~A"
             (length json)
             #\Return
@@ -70,7 +70,7 @@
     (force-output stream)))
 
 (defmethod receive-message-using-transport ((transport stdio-transport) connection)
-  (let* ((stream (connection-socket connection))
+  (let* ((stream (connection-stream connection))
          (headers (read-headers stream))
          (length (ignore-errors (parse-integer (gethash "content-length" headers)))))
     (when length
