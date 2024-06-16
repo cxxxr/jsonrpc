@@ -9,7 +9,8 @@
                 #:make-thread
                 #:destroy-thread)
   (:import-from #:jsonrpc/request-response
-                #:parse-message)
+                #:write-message
+                #:read-message)
   (:export #:stdio-transport))
 (in-package #:jsonrpc/transport/stdio)
 
@@ -59,32 +60,7 @@
     connection))
 
 (defmethod send-message-using-transport ((transport stdio-transport) connection message)
-  (let ((json (with-output-to-string (s)
-                (yason:encode message s)))
-        (stream (connection-stream connection)))
-    (format stream "Content-Length: ~A~C~C~:*~:*~C~C~A"
-            (length json)
-            #\Return
-            #\Newline
-            json)
-    (force-output stream)))
+  (write-message message (connection-stream connection)))
 
 (defmethod receive-message-using-transport ((transport stdio-transport) connection)
-  (let* ((stream (connection-stream connection))
-         (headers (read-headers stream))
-         (length (ignore-errors (parse-integer (gethash "content-length" headers)))))
-    (when length
-      (let ((body (make-string length)))
-        (read-sequence body (stdio-transport-input transport))
-        (parse-message body)))))
-
-;; character stream
-(defun read-headers (stream)
-  (let ((headers (make-hash-table :test 'equal)))
-    (loop for line = (read-line stream)
-          until (equal (string-trim '(#\Return #\Newline) line) "")
-          do (let* ((colon-pos (position #\: line))
-                    (field (string-downcase (subseq line 0 colon-pos)))
-                    (value (string-trim '(#\Return #\Space #\Tab) (subseq line (1+ colon-pos)))))
-               (setf (gethash field headers) value)))
-    headers))
+  (read-message (connection-stream connection)))
