@@ -25,7 +25,9 @@
            #:response-error-code
            #:response-result
            #:response-id
-           #:parse-message))
+           #:parse-message
+           #:read-message
+           #:write-message))
 (in-package #:jsonrpc/request-response)
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
@@ -174,3 +176,33 @@ Default rpc-version is 2.0, alternatively 1.0 can be supplied."
           (yason:encode-object-element "error" (response-error response))
           (yason:encode-object-element "result" (response-result response)))
       (yason:encode-object-element "id" (response-id response)))))
+
+;;; character stream
+
+(defun read-headers (stream)
+  (let ((headers (make-hash-table :test 'equal)))
+    (loop for line = (read-line stream)
+          until (equal (string-trim '(#\Return #\Newline) line) "")
+          do (let* ((colon-pos (position #\: line))
+                    (field (string-downcase (subseq line 0 colon-pos)))
+                    (value (string-trim '(#\Return #\Space #\Tab) (subseq line (1+ colon-pos)))))
+               (setf (gethash field headers) value)))
+    headers))
+
+(defun read-message (stream)
+  (let* ((headers (read-headers stream))
+         (length (ignore-errors (parse-integer (gethash "content-length" headers)))))
+    (when length
+      (let ((body (make-string length)))
+        (read-sequence body stream)
+        (parse-message body)))))
+
+(defun write-message (message stream)
+  (let ((json (with-output-to-string (s)
+                (yason:encode message s))))
+    (format stream "Content-Length: ~A~C~C~:*~:*~C~C~A"
+            (length json)
+            #\Return
+            #\Newline
+            json)
+    (force-output stream)))
