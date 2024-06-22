@@ -68,15 +68,23 @@
                                       :request-callback (transport-message-callback transport))))
       (setf (transport-connection transport) connection)
       (on-open-connection (transport-jsonrpc transport) connection)
-      (setf (transport-threads transport)
-            (list (bt2:make-thread
-                   (lambda ()
-                     (run-processing-loop transport connection))
-                   :name "jsonrpc/transport/local-domain-socket processing")
-                  (bt2:make-thread
-                   (lambda ()
-                     (run-reading-loop transport connection))
-                   :name "jsonrpc/transport/local-domain-socket reading")))
+      (let* ((processing-loop-thread
+               (bt2:make-thread
+                (lambda ()
+                  (run-processing-loop transport connection))
+                :name "jsonrpc/transport/local-domain-socket processing"))
+             (reading-loop-thread
+               (bt2:make-thread
+                (lambda ()
+                  (unwind-protect (handler-case
+                                      (run-reading-loop transport connection)
+                                    (end-of-file ()))
+                    (sb-bsd-sockets:socket-close socket)
+                    (bt2:destroy-thread processing-loop-thread)))
+                :name "jsonrpc/transport/local-domain-socket reading")))
+        (setf (transport-threads transport)
+              (list processing-loop-thread
+                    reading-loop-thread)))
       connection)))
 
 (defmethod send-message-using-transport
