@@ -53,7 +53,7 @@
                                 (on-close-connection (transport-jsonrpc transport) connection))))
                           :name "jsonrpc/transport/local-domain-socket reading")
                          threads))
-      (map () #'sb-thread:destroy-thread threads)
+      (map () #'bt2:destroy-thread threads)
       (sb-bsd-sockets:socket-close listen-socket))))
 
 (defmethod start-client ((transport local-domain-socket-transport))
