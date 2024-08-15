@@ -121,7 +121,7 @@
           (error "JSON-RPC synchronous call has been timeout")))
 
       ;; XXX: Strangely enough, there's sometimes no results/errors here on SBCL.
-      #+(and sbcl linux)
+      #+(and sbcl (or linux darwin))
       (loop repeat 5
             until (or (hash-exists-p *call-to-result* readylock)
                       (hash-exists-p *call-to-error* readylock))
