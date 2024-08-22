@@ -30,24 +30,7 @@
 
 (defvar *connection*)
 
-(defclass process-wait ()
-  ((condvar :initform (bt:make-condition-variable)
-            :reader process-wait-condvar)
-   (condlock :initform (bt:make-recursive-lock)
-             :reader process-wait-condlock)))
-
-(defgeneric wait-for-ready (process-wait)
-  (:method ((process-wait process-wait))
-    (bt:with-recursive-lock-held ((process-wait-condlock process-wait))
-      (bt:condition-wait (process-wait-condvar process-wait)
-                         (process-wait-condlock process-wait)))))
-
-(defgeneric notify-ready (process-wait)
-  (:method ((process-wait process-wait))
-    (bt:with-recursive-lock-held ((process-wait-condlock process-wait))
-      (bt:condition-notify (process-wait-condvar process-wait)))))
-
-(defclass connection (process-wait)
+(defclass connection ()
   ((stream :initarg :stream
            :accessor connection-stream)
    (request-callback :initarg :request-callback
@@ -63,23 +46,35 @@
    (response-callback :initform (make-hash-table :test 'equal)
                       :reader connection-response-callback)
 
+   (condvar :initform (bt:make-condition-variable))
+   (condlock :initform (bt:make-recursive-lock))
    (outbox :initform (make-instance 'chanl:unbounded-channel)
            :accessor connection-outbox)))
+
+(defgeneric send-and-notify (connection channel message)
+  (:method ((connection connection) channel message)
+    (bt:with-recursive-lock-held ((slot-value connection 'condlock))
+      (chanl:send channel message)
+      (bt:condition-notify (slot-value connection 'condvar)))))
+
+(defmethod wait-for-ready ((connection connection))
+  (bt:with-recursive-lock-held ((slot-value connection 'condlock))
+    (when (and (chanl:recv-blocks-p (slot-value connection 'request-queue))
+               (chanl:recv-blocks-p (slot-value connection 'outbox)))
+      (bt:condition-wait (slot-value connection 'condvar)
+                         (slot-value connection 'condlock)))))
 
 (defgeneric add-message-to-queue (connection message)
   ;; batch
   (:method ((connection connection) (messages list))
     (if (typep (first messages) 'request)
-        (progn
-          (chanl:send (connection-request-queue connection) messages)
-          (notify-ready connection))
+        (send-and-notify connection (connection-request-queue connection) messages)
         (dolist (response messages)
           (add-message-to-queue connection response)))
     (values))
 
   (:method ((connection connection) (message request))
-    (chanl:send (connection-request-queue connection) message)
-    (notify-ready connection)
+    (send-and-notify connection (connection-request-queue connection) message)
     (values))
 
   (:method ((connection connection) (message response))
@@ -107,8 +102,7 @@
     (values)))
 
 (defun add-message-to-outbox (connection message)
-  (chanl:send (connection-outbox connection) message)
-  (notify-ready connection))
+  (send-and-notify connection (connection-outbox connection) message))
 
 (defun set-callback-for-id (connection id callback)
   (let ((response-map (connection-response-map connection))

@@ -44,9 +44,7 @@
     (let ((request-queue (connection-request-queue connection))
           (outbox (connection-outbox connection)))
       (loop
-        (when (and (chanl:recv-blocks-p request-queue)
-                   (chanl:recv-blocks-p outbox))
-          (wait-for-ready connection))
+        (wait-for-ready connection)
         (chanl:select
           ((chanl:recv request-queue request)
            (let ((response (process-request connection request)))
