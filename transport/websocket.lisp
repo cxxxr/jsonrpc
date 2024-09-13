@@ -27,6 +27,8 @@
            #:make-clack-app))
 (in-package #:jsonrpc/transport/websocket)
 
+(defvar *clack-handler* 'default-handler)
+
 (defclass websocket-transport (transport)
   ((host :accessor websocket-transport-host
          :initarg :host
@@ -58,12 +60,16 @@
   transport)
 
 
+(defun default-handler (env)
+  (declare (ignore env))
+  '(200 () ("ok")))
+
 (defun make-clack-app (transport)
   (flet ((json-rpc-websocket-app (env)
            (block nil
              ;; Return 200 OK for non-WebSocket requests
              (unless (wsd:websocket-p env)
-               (return '(200 () ("ok"))))
+               (return (funcall *clack-handler* env)))
              (let* ((ws (wsd:make-server env))
                     (connection (make-instance 'connection
                                                :stream ws
