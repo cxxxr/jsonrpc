@@ -61,15 +61,16 @@
 
 
 (defun default-handler (env)
-  (declare (ignore env))
-  '(200 () ("ok")))
+  ;; Return 200 OK for non-WebSocket requests
+  (when (wsd:websocket-p env)
+    '(200 () ("ok"))))
 
 (defun make-clack-app (transport)
   (flet ((json-rpc-websocket-app (env)
            (block nil
-             ;; Return 200 OK for non-WebSocket requests
-             (unless (wsd:websocket-p env)
-               (return (funcall *clack-handler* env)))
+             (let ((result (funcall *clack-handler* env)))
+               (when result
+                 (return result)))
              (let* ((ws (wsd:make-server env))
                     (connection (make-instance 'connection
                                                :stream ws
