@@ -85,13 +85,13 @@
                                (and callback
                                     (funcall callback (response-result response))))))
 
-    (send-message from
-                  to
-                  (make-request :id id
-                                :method method
-                                :params params))
-
-    (values)))
+    (let ((request (make-request :id id
+                                 :method method
+                                 :params params)))
+      (send-message from
+                    to
+                    request)
+      request)))
 
 (defvar *call-to-result* (make-hash-table :test 'eq))
 (defvar *call-to-error* (make-hash-table :test 'eq))
