@@ -62,7 +62,7 @@
 
 (defun default-handler (env)
   ;; Return 200 OK for non-WebSocket requests
-  (when (wsd:websocket-p env)
+  (unless (wsd:websocket-p env)
     '(200 () ("ok"))))
 
 (defun make-clack-app (transport)
