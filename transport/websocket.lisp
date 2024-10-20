@@ -42,6 +42,9 @@
    (securep :accessor websocket-transport-secure-p
             :initarg :securep
             :initform nil)
+   (clack-handler :accessor websocket-clack-handler
+                  :initarg :clack-handler
+                  :initform *clack-handler*)
    (debug :initarg :debug
           :initform t
           :reader websocket-transport-debug-p)))
@@ -68,7 +71,7 @@
 (defun make-clack-app (transport)
   (flet ((json-rpc-websocket-app (env)
            (block nil
-             (let ((result (funcall *clack-handler* env)))
+             (let ((result (funcall (websocket-clack-handler transport) env)))
                (when result
                  (return result)))
              (let* ((ws (wsd:make-server env))
