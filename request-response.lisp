@@ -9,6 +9,11 @@
   (:import-from #:alexandria
                 #:hash-table-keys
                 #:xor)
+  (:import-from #:trivial-utf-8
+                #:utf-8-bytes-to-string
+                #:string-to-utf-8-bytes)
+  (:import-from #:flexi-streams
+                #:make-flexi-stream)
   (:import-from #:jsonrpc/yason)
   (:export #:request
            #:response
@@ -177,11 +182,9 @@ Default rpc-version is 2.0, alternatively 1.0 can be supplied."
           (yason:encode-object-element "result" (response-result response)))
       (yason:encode-object-element "id" (response-id response)))))
 
-;;; character stream
-
-(defun read-headers (stream)
+(defun read-headers (flex)
   (let ((headers (make-hash-table :test 'equal)))
-    (loop for line = (read-line stream)
+    (loop for line = (read-line flex)
           until (equal (string-trim '(#\Return #\Newline) line) "")
           do (let* ((colon-pos (position #\: line))
                     (field (string-downcase (subseq line 0 colon-pos)))
@@ -190,19 +193,20 @@ Default rpc-version is 2.0, alternatively 1.0 can be supplied."
     headers))
 
 (defun read-message (stream)
-  (let* ((headers (read-headers stream))
+  (let* ((flex (make-flexi-stream stream :external-format :utf-8))
+         (headers (read-headers flex))
          (length (ignore-errors (parse-integer (gethash "content-length" headers)))))
     (when length
-      (let ((body (make-string length)))
-        (read-sequence body stream)
-        (parse-message body)))))
+      (let ((body (make-array length :element-type '(unsigned-byte 8))))
+        (read-sequence body flex)
+        (parse-message (utf-8-bytes-to-string body))))))
 
 (defun write-message (message stream)
-  (let ((json (with-output-to-string (s)
-                (yason:encode message s))))
-    (format stream "Content-Length: ~A~C~C~:*~:*~C~C~A"
-            (length json)
-            #\Return
-            #\Newline
-            json)
+  (let* ((json (with-output-to-string (s) (yason:encode message s)))
+         (body (string-to-utf-8-bytes json)))
+    (write-sequence (string-to-utf-8-bytes
+                     (format nil "Content-Length: ~A~C~C~:*~:*~C~C"
+                             (length body) #\Return #\Newline))
+                    stream)
+    (write-sequence body stream)
     (force-output stream)))

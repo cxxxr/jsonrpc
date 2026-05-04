@@ -6,10 +6,7 @@
                 #:on-close-connection)
   (:import-from #:jsonrpc/connection
                 #:connection
-                #:connection-stream)
-  (:import-from #:jsonrpc/request-response
-                #:write-message
-                #:read-message))
+                #:connection-stream))
 (in-package #:jsonrpc/transport/local-domain-socket)
 
 (defconstant +backlog+ 128)
@@ -87,9 +84,3 @@
                     reading-loop-thread)))
       connection)))
 
-(defmethod send-message-using-transport
-    ((transport local-domain-socket-transport) connection message)
-  (write-message message (connection-stream connection)))
-
-(defmethod receive-message-using-transport ((transport local-domain-socket-transport) connection)
-  (read-message (connection-stream connection)))

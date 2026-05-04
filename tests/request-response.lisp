@@ -4,7 +4,10 @@
         #:jsonrpc/request-response
         #:jsonrpc/errors)
   (:shadowing-import-from #:rove
-                          #:*debug-on-error*))
+                          #:*debug-on-error*)
+  (:import-from #:flexi-streams
+                #:make-in-memory-input-stream
+                #:string-to-octets))
 (in-package #:jsonrpc/tests/request-response)
 
 (deftest parse-message-test
@@ -59,6 +62,49 @@
     (let ((message (parse-message "{\"id\":1,\"result\":null,\"error\":{\"code\":-32000,\"message\":\"something wrong\"}}"
 				  :version 1.0)))
       (ok (typep message 'response)))))
+
+(deftest read-message-test
+  (flet ((frame (body-string)
+           (let ((body (string-to-octets body-string :external-format :utf-8)))
+             (concatenate '(vector (unsigned-byte 8))
+                          (string-to-octets
+                           (format nil "Content-Length: ~A~C~C~C~C"
+                                   (length body) #\Return #\Newline #\Return #\Newline))
+                          body))))
+    (testing "ASCII body"
+      (let* ((s (make-in-memory-input-stream
+                 (frame "{\"jsonrpc\":\"2.0\",\"method\":\"add\",\"params\":[1,2],\"id\":1}")))
+             (m (read-message s)))
+        (ok (typep m 'request))
+        (ok (string= (request-method m) "add"))
+        (ok (equal (request-params m) '(1 2)))
+        (ok (eql (request-id m) 1))))
+
+    (testing "Multi-byte UTF-8 body (Content-Length is bytes, not characters)"
+      (let* ((em (string (code-char #x2014)))
+             (expected-method (format nil "foo~Abar" em))
+             (s  (make-in-memory-input-stream
+                  (frame (format nil "{\"jsonrpc\":\"2.0\",\"method\":\"~A\",\"params\":[1,2],\"id\":1}"
+                                 expected-method))))
+             (m (read-message s)))
+        (ok (typep m 'request))
+        (ok (string= (request-method m) expected-method))
+        (ok (eql (request-id m) 1))))
+
+    (testing "Two back-to-back messages stay in sync after multi-byte body"
+      (let* ((em (string (code-char #x2014)))
+             (em-param (format nil "em~Adash" em))
+             (b1 (frame (format nil "{\"jsonrpc\":\"2.0\",\"method\":\"a\",\"params\":[\"~A\"],\"id\":1}"
+                                em-param)))
+             (b2 (frame "{\"jsonrpc\":\"2.0\",\"method\":\"b\",\"id\":2}"))
+             (s  (make-in-memory-input-stream
+                  (concatenate '(vector (unsigned-byte 8)) b1 b2))))
+        (let ((m1 (read-message s))
+              (m2 (read-message s)))
+          (ok (string= (request-method m1) "a"))
+          (ok (equal (request-params m1) (list em-param)))
+          (ok (string= (request-method m2) "b"))
+          (ok (eql (request-id m2) 2)))))))
 
 (deftest json-encode
   (testing "request"

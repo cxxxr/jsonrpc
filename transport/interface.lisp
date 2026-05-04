@@ -6,7 +6,11 @@
                 #:add-message-to-queue
                 #:connection-request-queue
                 #:connection-outbox
-                #:add-message-to-outbox)
+                #:add-message-to-outbox
+                #:connection-stream)
+  (:import-from #:jsonrpc/request-response
+                #:read-message
+                #:write-message)
   (:import-from #:bordeaux-threads)
   (:import-from #:chanl)
   (:export #:transport
@@ -35,9 +39,14 @@
 
 (defgeneric start-client (transport))
 
-(defgeneric send-message-using-transport (transport to message))
+(defgeneric send-message-using-transport (transport to message)
+  (:method ((transport transport) connection message)
+    (write-message message (connection-stream connection))))
 
-(defgeneric receive-message-using-transport (transport from))
+(defgeneric receive-message-using-transport (transport from)
+  (:method ((transport transport) connection)
+    (handler-case (read-message (connection-stream connection))
+      (end-of-file () nil))))
 
 (defgeneric run-processing-loop (transport connection)
   (:method ((transport transport) connection)
