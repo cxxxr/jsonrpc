@@ -49,6 +49,12 @@
             'jsonrpc-invalid-response)
         "\"error\" must be a string"))
 
+  (testing "JSON arrays as vectors"
+    (let ((jsonrpc/yason:*parse-json-arrays-as-vectors* t))
+      (let ((message (parse-message "{\"method\":\"add\",\"params\":[1,2],\"id\":1,\"jsonrpc\":\"2.0\"}")))
+        (ok (typep message 'request))
+        (ok (vectorp (request-params message))))))
+
   (testing "general cases"
     (let ((message (parse-message "{\"method\":\"add\",\"params\":[1,2],\"id\":1,\"jsonrpc\":\"2.0\"}")))
       (ok (typep message 'request)))
